@@ -57,12 +57,34 @@
         .black-key .key-label {
             color: #aaa;
         }
+
+        /* Loading indicator animation */
+        .loading-indicator::after {
+            content: '.';
+            animation: loading-dots 1.5s steps(3, end) infinite;
+            display: inline-block; /* Needed for animation */
+            vertical-align: bottom;
+            width: 1em; /* Reserve space to prevent layout shift */
+            text-align: left;
+        }
+
+        @keyframes loading-dots {
+            0%, 20% {
+                content: '.';
+            }
+            40% {
+                content: '..';
+            }
+            60%, 100% {
+                content: '...';
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800 mb-2">Interactive Piano</h1>
-        <p class="text-gray-600">Click the keys or use your keyboard (ASDFGHJ for white keys, WETYU for black keys)</p>
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">Keynius the AI Composer</h1>
+        <p class="text-gray-600">Describe a song or style — Keynius plays it live on the piano.</p>
     </div>
     
     <div class="piano-container mb-8">
@@ -423,7 +445,8 @@
             const originalButtonText = button.textContent; // Store original text
             
             button.disabled = true;
-            button.textContent = 'Generating...';
+            button.textContent = 'Generating'; // Text without dots
+            button.classList.add('loading-indicator'); // Add loading class
             feedbackDiv.textContent = ''; // Clear previous feedback
 
             const availableNotes = Object.keys(noteFrequencies).join(', ');
@@ -553,6 +576,7 @@
             } finally {
                 button.disabled = false;
                 button.textContent = originalButtonText; // Restore original text
+                button.classList.remove('loading-indicator'); // Remove loading class
             }
         }
 

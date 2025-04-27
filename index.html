@@ -67,7 +67,29 @@
     
     <div class="piano-container mb-8">
         <div class="flex relative">
-            <!-- White keys -->
+            <!-- Lowest octave (C3-B3) - Mouse Only -->
+            <div class="white-key" data-note="C3">
+                <div class="key-label">(C3)</div>
+            </div>
+            <div class="white-key" data-note="D3">
+                <div class="key-label">(D3)</div>
+            </div>
+            <div class="white-key" data-note="E3">
+                <div class="key-label">(E3)</div>
+            </div>
+            <div class="white-key" data-note="F3">
+                <div class="key-label">(F3)</div>
+            </div>
+            <div class="white-key" data-note="G3">
+                <div class="key-label">(G3)</div>
+            </div>
+            <div class="white-key" data-note="A3">
+                <div class="key-label">(A3)</div>
+            </div>
+            <div class="white-key" data-note="B3">
+                <div class="key-label">(B3)</div>
+            </div>
+            <!-- Mid keys C4-B4 -->
             <div class="white-key" data-note="C4" data-key="z">
                 <div class="key-label">Z (C4)</div>
             </div>
@@ -113,35 +135,52 @@
             </div>
             
             <!-- Black keys -->
-            <div class="black-key" style="left: 42px;" data-note="C#4" data-key="s">
+            <!-- Lowest Octave (C#3-A#3) - Mouse Only -->
+            <div class="black-key" style="left: 42px;" data-note="C#3">
+                 <div class="key-label">(C#3)</div>
+            </div>
+            <div class="black-key" style="left: 102px;" data-note="D#3">
+                 <div class="key-label">(D#3)</div>
+            </div>
+            <div class="black-key" style="left: 222px;" data-note="F#3">
+                 <div class="key-label">(F#3)</div>
+            </div>
+            <div class="black-key" style="left: 282px;" data-note="G#3">
+                 <div class="key-label">(G#3)</div>
+            </div>
+            <div class="black-key" style="left: 342px;" data-note="A#3">
+                 <div class="key-label">(A#3)</div>
+            </div>
+            <!-- Mid Octave (C#4-A#4) - Keys: S D G H J -->
+            <div class="black-key" style="left: 462px;" data-note="C#4" data-key="s"> <!-- 42 + 420 -->
                 <div class="key-label">S (C#4)</div>
             </div>
-            <div class="black-key" style="left: 102px;" data-note="D#4" data-key="d">
+            <div class="black-key" style="left: 522px;" data-note="D#4" data-key="d"> <!-- 102 + 420 -->
                 <div class="key-label">D (D#4)</div>
             </div>
-            <div class="black-key" style="left: 222px;" data-note="F#4" data-key="g">
+            <div class="black-key" style="left: 642px;" data-note="F#4" data-key="g"> <!-- 222 + 420 -->
                 <div class="key-label">G (F#4)</div>
             </div>
-            <div class="black-key" style="left: 282px;" data-note="G#4" data-key="h">
+            <div class="black-key" style="left: 702px;" data-note="G#4" data-key="h"> <!-- 282 + 420 -->
                 <div class="key-label">H (G#4)</div>
             </div>
-            <div class="black-key" style="left: 342px;" data-note="A#4" data-key="j">
+            <div class="black-key" style="left: 762px;" data-note="A#4" data-key="j"> <!-- 342 + 420 -->
                 <div class="key-label">J (A#4)</div>
             </div>
-            <!-- Second octave black keys -->
-            <div class="black-key" style="left: 462px;" data-note="C#5" data-key="2">
+            <!-- Upper Octave (C#5-A#5) - Keys: 2 3 5 6 7 -->
+            <div class="black-key" style="left: 882px;" data-note="C#5" data-key="2"> <!-- 462 + 420 -->
                 <div class="key-label">2 (C#5)</div>
             </div>
-             <div class="black-key" style="left: 522px;" data-note="D#5" data-key="3">
+             <div class="black-key" style="left: 942px;" data-note="D#5" data-key="3"> <!-- 522 + 420 -->
                 <div class="key-label">3 (D#5)</div>
             </div>
-            <div class="black-key" style="left: 642px;" data-note="F#5" data-key="5">
+            <div class="black-key" style="left: 1062px;" data-note="F#5" data-key="5"> <!-- 642 + 420 -->
                 <div class="key-label">5 (F#5)</div>
             </div>
-            <div class="black-key" style="left: 702px;" data-note="G#5" data-key="6">
+            <div class="black-key" style="left: 1122px;" data-note="G#5" data-key="6"> <!-- 702 + 420 -->
                 <div class="key-label">6 (G#5)</div>
             </div>
-            <div class="black-key" style="left: 762px;" data-note="A#5" data-key="7">
+            <div class="black-key" style="left: 1182px;" data-note="A#5" data-key="7"> <!-- 762 + 420 -->
                 <div class="key-label">7 (A#5)</div>
             </div>
         </div>
@@ -169,10 +208,11 @@
     <div class="bg-white p-6 rounded-lg shadow-md max-w-md w-full mt-8">
         <h2 class="text-xl font-semibold mb-4 text-gray-800">How to Play</h2>
         <ul class="space-y-2 text-gray-600">
-            <li>• Click piano keys with your mouse</li>
+            <li>• Click piano keys with your mouse (C3-B5 available)</li>
             <li>• Use keyboard keys:</li>
             <li class="ml-4"> • Lower Octave (C4-B4): White: ZXC VBNM | Black: S D G H J</li>
             <li class="ml-4"> • Upper Octave (C5-B5): White: QWE RTYU | Black: 2 3 5 6 7</li>
+            <li class="ml-4"> • Lowest Octave (C3-B3): Mouse click only</li>
             <li>• Each note is accurately tuned</li>
         </ul>
     </div>
@@ -221,9 +261,15 @@
         
         // Note frequencies (A4 = 440Hz)
         const noteFrequencies = {
+            // Octave 3
+            'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56,
+            'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00,
+            'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
+            // Octave 4
             'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
             'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
             'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+            // Octave 5
             'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25,
             'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
             'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77

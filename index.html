@@ -346,69 +346,81 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // Function to play a sequence of notes with varying durations
-        async function playSequence(sequence) { 
+        // Function to play polyphonic sequences
+        async function playSequence(sequence) {
             const baseDurationMs = 400; // Base duration for multiplier 1
-            console.log("Starting sequence playback with variable durations...");
+            console.log("Starting polyphonic sequence playback...");
 
             for (const item of sequence) {
-                // Validate item structure
+                // --- Basic validation --- 
                 if (!Array.isArray(item) || item.length !== 2) {
-                    console.warn("Skipping invalid item structure in sequence:", item);
+                    console.warn("Skipping invalid item structure:", item);
                     continue;
                 }
-
-                const [element, multiplier] = item;
-                
-                // Validate multiplier
+                const [eventData, multiplier] = item;
                 if (typeof multiplier !== 'number' || multiplier <= 0) {
                     console.warn("Skipping item with invalid multiplier:", item);
                     continue;
                 }
-                
                 const currentDurationMs = baseDurationMs * multiplier;
 
-                if (element === "PAUSE") {
-                    // Handle pause
-                    console.log(`PAUSE for ${currentDurationMs}ms`);
-                    await sleep(currentDurationMs);
+                // --- Determine notes/pause for this step --- 
+                let notesToPlay = []; // Array of note names for this step
+                let isPause = false;
+
+                if (Array.isArray(eventData)) { // Chord: [["Note1", "Note2"], multiplier]
+                    if (eventData.length === 2 && typeof eventData[0] === 'string' && typeof eventData[1] === 'string') {
+                        notesToPlay = eventData;
+                    } else {
+                        console.warn("Skipping invalid chord format:", item);
+                        continue;
+                    }
+                } else if (typeof eventData === 'string') { // Single note or pause
+                    if (eventData === "PAUSE") {
+                        isPause = true;
+                    } else {
+                        notesToPlay = [eventData]; // Single note
+                    }
                 } else {
-                    // Handle note
-                    const note = element;
-                    // Validate note name format if needed, though AI should provide correct ones
-                    if (typeof note !== 'string') {
-                         console.warn("Skipping item with invalid note name:", item);
-                         continue;
+                    console.warn("Skipping invalid event data type:", item);
+                    continue;
+                }
+
+                // --- Execute the step --- 
+                if (isPause) {
+                    console.log(`PAUSE for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
+                    await sleep(currentDurationMs);
+                } else if (notesToPlay.length > 0) {
+                    console.log(`Playing notes: ${notesToPlay.join(', ')} for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
+                    const activeKeys = [];
+                    
+                    // Start all notes simultaneously & activate keys
+                    for (const note of notesToPlay) {
+                        const pianoKey = document.querySelector(`[data-note="${note}"]`);
+                        if (pianoKey && noteFrequencies[note]) {
+                            pianoKey.classList.add('active');
+                            activeKeys.push(pianoKey); // Keep track of keys to deactivate
+                            playNote(noteFrequencies[note], currentDurationMs / 1000);
+                        } else {
+                            console.warn(`Note ${note} in chord/note not found or invalid.`);
+                        }
                     }
                     
-                    const pianoKey = document.querySelector(`[data-note="${note}"]`);
-
-                    if (pianoKey && noteFrequencies[note]) {
-                        // **Corrected log message format**
-                        console.log(`Playing: ${note} for ${currentDurationMs}ms (Multiplier: ${multiplier})`); 
-                        
-                        pianoKey.classList.add('active');
-                        // Pass the calculated duration to playNote
-                        playNote(noteFrequencies[note], currentDurationMs / 1000); 
-
-                        // Wait for the note's duration 
-                        await sleep(currentDurationMs);
-
-                        // Deactivate key immediately before next item/end
-                        pianoKey.classList.remove('active');
-
-                    } else {
-                        console.warn(`Note ${note} not found or invalid. Skipping.`);
-                         // Wait for the intended duration even if note is skipped
-                         await sleep(currentDurationMs); 
+                    // Wait for the duration
+                    await sleep(currentDurationMs);
+                    
+                    // Deactivate all keys for this step
+                    for (const key of activeKeys) {
+                        key.classList.remove('active');
                     }
-                }
-            }
-            console.log("Sequence finished.");
-        }
 
-        // Example usage - uncomment to test
-        // playSequence(['C4', 'E4', 'G4', 'C5', 'G4', 'E4', 'C4']);
+                } else { // Should not happen if validation is correct, but as fallback
+                     await sleep(currentDurationMs); 
+                }
+            } // End of loop over sequence items
+
+            console.log("Polyphonic sequence finished.");
+        }
 
         // --- AI Music Generation ---
         const deepseekApiKey = 'sk-add35bac795a45528576d6ae8ee2b5dc'; // WARNING: Exposing API key in frontend code!
@@ -427,26 +439,29 @@
             feedbackDiv.textContent = ''; // Clear previous feedback
 
             const availableNotes = Object.keys(noteFrequencies).join(', ');
-            // Construct the final prompt for the AI
             let finalPrompt;
             const baseDurationInfo = "Use a duration multiplier: 1 for a standard duration (like a quarter note), 2 for double (half note), 0.5 for half (eighth note), etc.";
+            const outputFormatInfo = `Output the result as a JSON array of sequence items. Each item must be one of the following formats: [\"NoteName\", duration_multiplier], [\"PAUSE\", duration_multiplier], or [[\"Note1\", \"Note2\"], duration_multiplier] for simultaneous notes.`;
+            const example = `Example: [[\"E4\", 1], [\"E4\", 1], [[\"F4\",\"A4\"], 1], [\"G4\", 1], [\"PAUSE\", 1], [[\"C4\",\"E4\"], 2]]`;
+
             if (userPrompt) {
-                let instruction = `Generate a melody sequence based on the following request: \"${userPrompt}\".`;
+                let instruction = `Generate a polyphonic (two-handed) melody sequence based on the request: \"${userPrompt}\".`;
                 if (userPrompt.toLowerCase().includes('c minor') || userPrompt.toLowerCase().includes('c-moll')) {
                     instruction += ` For C minor, primarily use the notes C, D, Eb (D#), F, G, Ab (G#), Bb (A#).`;
                 }
                 instruction += ` Strictly adhere to any specified musical key or mode if possible.`;
                 instruction += ` Use only the available piano notes: ${availableNotes}.`;
-                instruction += ` Output the result as a JSON array of pairs, where each pair is [\"NoteName\" or \"PAUSE\", duration_multiplier].`; 
+                instruction += ` ${outputFormatInfo}`; // Explain format
                 instruction += ` ${baseDurationInfo}`; 
-                instruction += ` Example: [[\"E4\", 1], [\"E4\", 1], [\"F4\", 1], [\"G4\", 1], [\"G4\", 1], [\"F4\", 1], [\"E4\", 1], [\"D4\", 1], [\"C4\", 1], [\"C4\", 1], [\"D4\", 1], [\"E4\", 1], [\"E4\", 2], [\"D4\", 2]].`;
+                instruction += ` ${example}`; // Show example
                 instruction += ` Pauses should be represented as [\"PAUSE\", duration_multiplier].`;
                 instruction += ` Do NOT include any other text, explanation, or markdown formatting.`;
                 finalPrompt = instruction;
             } else {
-                finalPrompt = `Generate a simple and short random melody sequence using only the following piano notes: ${availableNotes}. Include some pauses.`;
-                finalPrompt += ` Output the result as a JSON array of pairs, like [[\"C4\", 1], [\"PAUSE\", 0.5], [\"E4\", 1]].`; 
+                finalPrompt = `Generate a simple, short, random polyphonic (two-handed) melody sequence using piano notes: ${availableNotes}. Include some pauses.`;
+                finalPrompt += ` ${outputFormatInfo}`; // Explain format
                 finalPrompt += ` ${baseDurationInfo}`; 
+                finalPrompt += ` ${example}`; // Show example
                 finalPrompt += ` Do NOT include any other text, explanation, or markdown formatting.`;
             }
             
@@ -573,6 +588,22 @@
             const chatInput = document.getElementById('ai-chat-input');
             if (chatInput) {
                 chatInput.value = '';
+            }
+        });
+
+        // Trigger AI generation on Enter key in chat input
+        document.getElementById('ai-chat-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent default Enter behavior (like form submission)
+                const userInput = e.target.value.trim();
+                if (userInput) {
+                    generateAndPlaySequence(userInput);
+                } else {
+                    // Optional: Notify user if input is empty on Enter
+                    // alert("Please enter instructions before pressing Enter."); 
+                    const feedbackDiv = document.getElementById('ai-feedback');
+                    if(feedbackDiv) feedbackDiv.textContent = "Please enter instructions first.";
+                }
             }
         });
 

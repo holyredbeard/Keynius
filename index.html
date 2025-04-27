@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Piano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .piano-container {
+            perspective: 1000px;
+        }
+        
+        .white-key {
+            position: relative;
+            width: 60px;
+            height: 250px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 5px 5px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+            z-index: 1;
+        }
+        
+        .white-key.active {
+            background: #f0f0f0;
+            transform: translateY(2px);
+            box-shadow: 0 3px 3px rgba(0,0,0,0.2);
+        }
+        
+        .black-key {
+            position: absolute;
+            width: 36px;
+            height: 150px;
+            background: #222;
+            border-radius: 0 0 3px 3px;
+            box-shadow: 0 5px 5px rgba(0,0,0,0.4);
+            z-index: 2;
+            transition: all 0.1s;
+        }
+        
+        .black-key.active {
+            background: #111;
+            transform: translateY(2px);
+            box-shadow: 0 3px 3px rgba(0,0,0,0.4);
+        }
+        
+        .key-label {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .black-key .key-label {
+            color: #aaa;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">Interactive Piano</h1>
+        <p class="text-gray-600">Click the keys or use your keyboard (ASDFGHJ for white keys, WETYU for black keys)</p>
+    </div>
+    
+    <div class="piano-container mb-8">
+        <div class="flex relative">
+            <!-- White keys -->
+            <div class="white-key" data-note="C4" data-key="z">
+                <div class="key-label">Z (C4)</div>
+            </div>
+            <div class="white-key" data-note="D4" data-key="x">
+                <div class="key-label">X (D4)</div>
+            </div>
+            <div class="white-key" data-note="E4" data-key="c">
+                <div class="key-label">C (E4)</div>
+            </div>
+            <div class="white-key" data-note="F4" data-key="v">
+                <div class="key-label">V (F4)</div>
+            </div>
+            <div class="white-key" data-note="G4" data-key="b">
+                <div class="key-label">B (G4)</div>
+            </div>
+            <div class="white-key" data-note="A4" data-key="n">
+                <div class="key-label">N (A4)</div>
+            </div>
+            <div class="white-key" data-note="B4" data-key="m">
+                <div class="key-label">M (B4)</div>
+            </div>
+            <!-- C5 white key (start of second octave) will be added next -->
+            <div class="white-key" data-note="C5" data-key="q">
+                <div class="key-label">Q (C5)</div>
+            </div>
+            <div class="white-key" data-note="D5" data-key="w">
+                <div class="key-label">W (D5)</div>
+            </div>
+            <div class="white-key" data-note="E5" data-key="e">
+                <div class="key-label">E (E5)</div>
+            </div>
+            <div class="white-key" data-note="F5" data-key="r">
+                <div class="key-label">R (F5)</div>
+            </div>
+            <div class="white-key" data-note="G5" data-key="t">
+                <div class="key-label">T (G5)</div>
+            </div>
+            <div class="white-key" data-note="A5" data-key="y">
+                <div class="key-label">Y (A5)</div>
+            </div>
+            <div class="white-key" data-note="B5" data-key="u">
+                <div class="key-label">U (B5)</div>
+            </div>
+            
+            <!-- Black keys -->
+            <div class="black-key" style="left: 42px;" data-note="C#4" data-key="s">
+                <div class="key-label">S (C#4)</div>
+            </div>
+            <div class="black-key" style="left: 102px;" data-note="D#4" data-key="d">
+                <div class="key-label">D (D#4)</div>
+            </div>
+            <div class="black-key" style="left: 222px;" data-note="F#4" data-key="g">
+                <div class="key-label">G (F#4)</div>
+            </div>
+            <div class="black-key" style="left: 282px;" data-note="G#4" data-key="h">
+                <div class="key-label">H (G#4)</div>
+            </div>
+            <div class="black-key" style="left: 342px;" data-note="A#4" data-key="j">
+                <div class="key-label">J (A#4)</div>
+            </div>
+            <!-- Second octave black keys -->
+            <div class="black-key" style="left: 462px;" data-note="C#5" data-key="2">
+                <div class="key-label">2 (C#5)</div>
+            </div>
+             <div class="black-key" style="left: 522px;" data-note="D#5" data-key="3">
+                <div class="key-label">3 (D#5)</div>
+            </div>
+            <div class="black-key" style="left: 642px;" data-note="F#5" data-key="5">
+                <div class="key-label">5 (F#5)</div>
+            </div>
+            <div class="black-key" style="left: 702px;" data-note="G#5" data-key="6">
+                <div class="key-label">6 (G#5)</div>
+            </div>
+            <div class="black-key" style="left: 762px;" data-note="A#5" data-key="7">
+                <div class="key-label">7 (A#5)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Interaction Section -->
+    <div class="mt-8 max-w-xl w-full space-y-4">
+        <h3 class="text-lg font-semibold text-gray-700 text-center">AI Composer</h3>
+        <div id="ai-feedback" class="mb-2 text-gray-600 italic text-center min-h-[1.5em]"></div>
+        
+        <div>
+            <input type="text" id="ai-chat-input" class="w-full border border-gray-300 p-2 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="E.g., 'a sad melody in C minor with pauses'">
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-3">
+            <button id="ai-instruct-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                Generate & Play from Input
+            </button>
+            <button id="ai-random-play-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Play Random Melody
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md max-w-md w-full mt-8">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">How to Play</h2>
+        <ul class="space-y-2 text-gray-600">
+            <li>• Click piano keys with your mouse</li>
+            <li>• Use keyboard keys:</li>
+            <li class="ml-4"> • Lower Octave (C4-B4): White: ZXC VBNM | Black: S D G H J</li>
+            <li class="ml-4"> • Upper Octave (C5-B5): White: QWE RTYU | Black: 2 3 5 6 7</li>
+            <li>• Each note is accurately tuned</li>
+        </ul>
+    </div>
+
+    <script>
+        // Audio context setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Function to play a note
+        function playNote(frequency, duration = 0.7) { // Increased default duration slightly
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.type = 'triangle'; // Changed from 'sine' for a richer sound
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            
+            // Simple ADSR-like envelope simulation
+            const now = audioContext.currentTime;
+            const attackTime = 0.01;  // Very short attack
+            const decayTime = 0.1;   // Time to decay to sustain level
+            const sustainLevel = 0.3; // Volume level during sustain
+            const peakVolume = 0.6;   // Max volume during attack
+
+            gainNode.gain.setValueAtTime(0, now); // Start silent
+            gainNode.gain.linearRampToValueAtTime(peakVolume, now + attackTime); // Attack ramp
+            gainNode.gain.exponentialRampToValueAtTime(sustainLevel, now + attackTime + decayTime); // Decay to sustain
+            
+            // Schedule the start of the release phase towards the end of the duration
+            // The release will happen over the last part of the duration.
+            // A more realistic approach would trigger release on key up.
+            const releaseStartTime = now + duration * 0.8; // Start release slightly before the end 
+            if (releaseStartTime > now + attackTime + decayTime) { // Ensure release starts after decay
+                 gainNode.gain.setValueAtTime(sustainLevel, releaseStartTime);
+                 gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration); // Release ramp
+            } else {
+                // If duration is very short, just ramp down from decay
+                 gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration); 
+            }
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        }
+        
+        // Note frequencies (A4 = 440Hz)
+        const noteFrequencies = {
+            'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
+            'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
+            'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+            'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25,
+            'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
+            'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77
+        };
+        
+        // Set up mouse events for piano keys
+        document.querySelectorAll('.white-key, .black-key').forEach(key => {
+            const note = key.getAttribute('data-note');
+            const keyboardKey = key.getAttribute('data-key');
+            
+            // Mouse down
+            key.addEventListener('mousedown', () => {
+                key.classList.add('active');
+                playNote(noteFrequencies[note]);
+            });
+            
+            // Mouse up
+            key.addEventListener('mouseup', () => {
+                key.classList.remove('active');
+            });
+            
+            // Mouse leave while pressed
+            key.addEventListener('mouseleave', () => {
+                if (key.classList.contains('active')) {
+                    key.classList.remove('active');
+                }
+            });
+        });
+        
+        // Set up keyboard events
+        document.addEventListener('keydown', (e) => {
+            // Prevent piano playing when chat input is focused
+            if (document.activeElement === document.getElementById('ai-chat-input')) {
+                return;
+            }
+
+            const key = e.key.toLowerCase();
+            const pianoKey = document.querySelector(`[data-key="${key}"]`);
+            
+            if (pianoKey && !pianoKey.classList.contains('active')) {
+                pianoKey.classList.add('active');
+                const note = pianoKey.getAttribute('data-note');
+                playNote(noteFrequencies[note]);
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            const pianoKey = document.querySelector(`[data-key="${key}"]`);
+            
+            if (pianoKey) {
+                pianoKey.classList.remove('active');
+            }
+        });
+        
+        // Handle mobile touch events
+        document.querySelectorAll('.white-key, .black-key').forEach(key => {
+            const note = key.getAttribute('data-note');
+            
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                key.classList.add('active');
+                playNote(noteFrequencies[note]);
+            });
+            
+            key.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                key.classList.remove('active');
+            });
+        });
+
+        // Helper function for delays
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Function to play a sequence of notes with varying durations
+        async function playSequence(sequence) { 
+            const baseDurationMs = 400; // Base duration for multiplier 1
+            console.log("Starting sequence playback with variable durations...");
+
+            for (const item of sequence) {
+                // Validate item structure
+                if (!Array.isArray(item) || item.length !== 2) {
+                    console.warn("Skipping invalid item structure in sequence:", item);
+                    continue;
+                }
+
+                const [element, multiplier] = item;
+                
+                // Validate multiplier
+                if (typeof multiplier !== 'number' || multiplier <= 0) {
+                    console.warn("Skipping item with invalid multiplier:", item);
+                    continue;
+                }
+                
+                const currentDurationMs = baseDurationMs * multiplier;
+
+                if (element === "PAUSE") {
+                    // Handle pause
+                    console.log(`PAUSE for ${currentDurationMs}ms`);
+                    await sleep(currentDurationMs);
+                } else {
+                    // Handle note
+                    const note = element;
+                    // Validate note name format if needed, though AI should provide correct ones
+                    if (typeof note !== 'string') {
+                         console.warn("Skipping item with invalid note name:", item);
+                         continue;
+                    }
+                    
+                    const pianoKey = document.querySelector(`[data-note="${note}"]`);
+
+                    if (pianoKey && noteFrequencies[note]) {
+                        // **Corrected log message format**
+                        console.log(`Playing: ${note} for ${currentDurationMs}ms (Multiplier: ${multiplier})`); 
+                        
+                        pianoKey.classList.add('active');
+                        // Pass the calculated duration to playNote
+                        playNote(noteFrequencies[note], currentDurationMs / 1000); 
+
+                        // Wait for the note's duration 
+                        await sleep(currentDurationMs);
+
+                        // Deactivate key immediately before next item/end
+                        pianoKey.classList.remove('active');
+
+                    } else {
+                        console.warn(`Note ${note} not found or invalid. Skipping.`);
+                         // Wait for the intended duration even if note is skipped
+                         await sleep(currentDurationMs); 
+                    }
+                }
+            }
+            console.log("Sequence finished.");
+        }
+
+        // Example usage - uncomment to test
+        // playSequence(['C4', 'E4', 'G4', 'C5', 'G4', 'E4', 'C4']);
+
+        // --- AI Music Generation ---
+        const deepseekApiKey = 'sk-add35bac795a45528576d6ae8ee2b5dc'; // WARNING: Exposing API key in frontend code!
+        const deepseekApiUrl = 'https://api.deepseek.com/chat/completions';
+
+        // Consolidated function to generate and play based on a prompt
+        async function generateAndPlaySequence(userPrompt = null) {
+            // Determine which button to update based on whether a prompt was provided
+            const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
+            const button = document.getElementById(buttonId);
+            const feedbackDiv = document.getElementById('ai-feedback'); // Get feedback div
+            const originalButtonText = button.textContent; // Store original text
+            
+            button.disabled = true;
+            button.textContent = 'Generating...';
+            feedbackDiv.textContent = ''; // Clear previous feedback
+
+            const availableNotes = Object.keys(noteFrequencies).join(', ');
+            // Construct the final prompt for the AI
+            let finalPrompt;
+            const baseDurationInfo = "Use a duration multiplier: 1 for a standard duration (like a quarter note), 2 for double (half note), 0.5 for half (eighth note), etc.";
+            if (userPrompt) {
+                let instruction = `Generate a melody sequence based on the following request: \"${userPrompt}\".`;
+                if (userPrompt.toLowerCase().includes('c minor') || userPrompt.toLowerCase().includes('c-moll')) {
+                    instruction += ` For C minor, primarily use the notes C, D, Eb (D#), F, G, Ab (G#), Bb (A#).`;
+                }
+                instruction += ` Strictly adhere to any specified musical key or mode if possible.`;
+                instruction += ` Use only the available piano notes: ${availableNotes}.`;
+                instruction += ` Output the result as a JSON array of pairs, where each pair is [\"NoteName\" or \"PAUSE\", duration_multiplier].`; 
+                instruction += ` ${baseDurationInfo}`; 
+                instruction += ` Example: [[\"E4\", 1], [\"E4\", 1], [\"F4\", 1], [\"G4\", 1], [\"G4\", 1], [\"F4\", 1], [\"E4\", 1], [\"D4\", 1], [\"C4\", 1], [\"C4\", 1], [\"D4\", 1], [\"E4\", 1], [\"E4\", 2], [\"D4\", 2]].`;
+                instruction += ` Pauses should be represented as [\"PAUSE\", duration_multiplier].`;
+                instruction += ` Do NOT include any other text, explanation, or markdown formatting.`;
+                finalPrompt = instruction;
+            } else {
+                finalPrompt = `Generate a simple and short random melody sequence using only the following piano notes: ${availableNotes}. Include some pauses.`;
+                finalPrompt += ` Output the result as a JSON array of pairs, like [[\"C4\", 1], [\"PAUSE\", 0.5], [\"E4\", 1]].`; 
+                finalPrompt += ` ${baseDurationInfo}`; 
+                finalPrompt += ` Do NOT include any other text, explanation, or markdown formatting.`;
+            }
+            
+            console.log("Sending prompt to AI:", finalPrompt);
+
+            try {
+                const response = await fetch(deepseekApiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${deepseekApiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek-chat', // Or another appropriate model
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant that generates musical note sequences.' },
+                            { role: 'user', content: finalPrompt }
+                        ],
+                        max_tokens: 800, // Increased max_tokens significantly
+                        temperature: 0.7 // Adjust for creativity vs predictability
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Deepseek API error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                // Extract the note sequence from the response
+                // This might need adjustment depending on the exact structure of Deepseek's response
+                let noteSequence = [];
+                if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+                    let rawContent = data.choices[0].message.content.trim();
+                    console.log("Raw AI Response:", rawContent);
+
+                    // Remove potential markdown fences
+                    if (rawContent.startsWith('```json')) {
+                        rawContent = rawContent.substring(7).trim(); // Remove ```json
+                    } else if (rawContent.startsWith('```')) {
+                         rawContent = rawContent.substring(3).trim(); // Remove ```
+                    }
+                    if (rawContent.endsWith('```')) {
+                        rawContent = rawContent.substring(0, rawContent.length - 3).trim(); // Remove trailing ```
+                    }
+
+                    // Improved JSON parsing: Find first '[' and last ']' brackets
+                    const startIndex = rawContent.indexOf('[');
+                    const endIndex = rawContent.lastIndexOf(']');
+
+                    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+                        const jsonString = rawContent.substring(startIndex, endIndex + 1);
+                        try {
+                            noteSequence = JSON.parse(jsonString);
+                            console.log("Successfully parsed JSON substring:", noteSequence);
+                        } catch (parseError) {
+                            console.error("Failed to parse extracted JSON substring:", parseError, "Substring:", jsonString);
+                             alert("AI generated a melody, but its format was invalid. Check console.");
+                        }
+                    } else {
+                         // Fallback or error if brackets not found
+                         console.warn("Could not find valid JSON array brackets in the AI response.");
+                         // Attempt to handle responses that omit brackets but might have content
+                         if (!rawContent.includes('[') && !rawContent.includes(']') && rawContent.includes('"')) {
+                             // Try wrapping with brackets if it looks like comma-separated strings
+                             try {
+                                 noteSequence = JSON.parse(`[${rawContent}]`);
+                                 console.log("Successfully parsed after wrapping with brackets:", noteSequence);
+                             } catch (wrapParseError) {
+                                 console.error("Failed to parse after wrapping with brackets:", wrapParseError);
+                                 alert("AI generated an invalid note sequence format. Check console.");
+                             }
+                         } else {
+                            alert("AI generated an invalid note sequence format. Check console.");
+                         }
+                    }
+                } else {
+                    console.error("Unexpected response structure from Deepseek API:", data);
+                    alert("Failed to get a valid response from the AI.");
+                }
+
+                if (Array.isArray(noteSequence) && noteSequence.length > 0) {
+                    console.log("Playing sequence:", noteSequence);
+                    // Display feedback message before playing
+                    const feedbackMessage = userPrompt 
+                        ? `Okay, I will try to play a melody based on: "${userPrompt}"`
+                        : "Okay, I will play a random melody.";
+                    feedbackDiv.textContent = feedbackMessage;
+
+                    await playSequence(noteSequence);
+                } else {
+                    console.warn("Received empty or invalid sequence from AI.");
+                    feedbackDiv.textContent = "Sorry, I couldn't generate a playable sequence this time."; // Feedback on failure
+                    // if (!alertShown) alert("AI did not generate a playable sequence."); // Avoid duplicate alerts
+                }
+
+            } catch (error) {
+                console.error('Error generating or playing AI sequence:', error);
+                feedbackDiv.textContent = `An error occurred: ${error.message}`; // Feedback on error
+                // alert(`Error: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalButtonText; // Restore original text
+            }
+        }
+
+        // Add event listener to the RANDOM melody button
+        document.getElementById('ai-random-play-button').addEventListener('click', () => {
+             generateAndPlaySequence(); // Call without prompt for random melody
+        });
+
+        // Add event listener to the INSTRUCTED melody button
+        document.getElementById('ai-instruct-button').addEventListener('click', () => {
+            const userInput = document.getElementById('ai-chat-input').value;
+            if (userInput.trim()) { // Only generate if input is not empty
+                generateAndPlaySequence(userInput.trim());
+            } else {
+                alert("Please enter instructions for the AI composer.");
+            }
+        });
+
+        // Clear chat input on page load
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const chatInput = document.getElementById('ai-chat-input');
+            if (chatInput) {
+                chatInput.value = '';
+            }
+        });
+
+    </script>
+</body>
+</html>

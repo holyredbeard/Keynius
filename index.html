@@ -451,6 +451,22 @@
 
         let lastGeneratedSequence = null; // To store the last successfully generated sequence
 
+        // Helper to guess if prompt asks for a specific song/artist
+        function looksLikeSpecificSongRequest(prompt) {
+            if (!prompt) return false;
+            const lowerPrompt = prompt.toLowerCase();
+            // Keywords suggesting specific entity rather than style/mood
+            const keywords = ['play', 'by', 'av', 'spela', 'artist:', 'song:', 'låt:', 'från']; 
+            // Simple check for quotes
+            if (lowerPrompt.includes('"') || lowerPrompt.includes("'")) return true;
+            // Check if keywords are followed by likely proper nouns (heuristic)
+            return keywords.some(kw => {
+                const index = lowerPrompt.indexOf(kw);
+                // Check if keyword exists and is followed by something substantial
+                return index !== -1 && lowerPrompt.length > index + kw.length + 2; 
+            });
+        }
+
         // Main function to orchestrate segment generation and playback
         async function generateAndPlaySequence(userPrompt = null) {
             const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
@@ -473,10 +489,14 @@
             let success = true;
             let suggestedTitle = null; // Variable to store the suggested title
 
-            // --- Fetch title suggestion first (if applicable) --- 
-            if (userPrompt) {
+            // --- Fetch title suggestion ONLY if it looks like a specific request --- 
+            if (userPrompt && looksLikeSpecificSongRequest(userPrompt)) {
                 try {
+                    feedbackDiv.textContent = "(Checking for song title...)"; // Temporary feedback
                     suggestedTitle = await fetchSongTitleSuggestion(userPrompt);
+                     // Restore random tip if title check was fast
+                    const randomTip = loadingTips[Math.floor(Math.random() * loadingTips.length)];
+                    feedbackDiv.textContent = randomTip;
                 } catch (titleError) {
                     // Log error but continue with music generation anyway
                     console.error("Failed to fetch title suggestion:", titleError);
@@ -634,14 +654,19 @@
 
             if (isContinuation) {
                 const contextString = JSON.stringify(context); 
-                // ** Use suggestedTitle to reinforce the specific song **
+                // Use suggestedTitle only if it exists
                 const songReference = suggestedTitle ? `the specific song: \"${suggestedTitle}\"` : `the musical piece`;
-                const originalRequestInfo = userPrompt ? ` (originally requested as \"${userPrompt}\")` : "";
+                const originalRequestInfo = userPrompt ? ` (based on initial request: \"${userPrompt}\")` : ""; // Adjusted wording
                 
                 promptSegment = `Continue generating ${songReference}${originalRequestInfo}.`;
-                promptSegment += ` It is crucial that you strictly follow the known melody and structure of ${songReference} if it's a well-known piece.`;
+                // Only emphasize following the known melody if we have a specific title suggestion
+                if (suggestedTitle) { 
+                    promptSegment += ` It is crucial that you strictly follow the known melody and structure of \"${suggestedTitle}\" if it's a well-known piece.`;
+                } else {
+                    promptSegment += ` Continue in a similar style and key.`; // Generic continuation
+                }
                 promptSegment += ` The previous segment ended with approximately: ${contextString}.`;
-                promptSegment += ` Generate ONLY the *next* ${segmentLength} JSON array segment, continuing the melody accurately.`;
+                promptSegment += ` Generate ONLY the *next* ${segmentLength} JSON array segment, continuing the melody accurately or in style.`; // Adjusted wording
             } else {
                 const baseRequest = userPrompt 
                                 ? `Generate the *first* ${segmentLength} segment of a ${musicType} piece based on: \"${userPrompt}\".`

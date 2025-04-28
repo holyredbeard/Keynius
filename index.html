@@ -5,64 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Piano</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Link to the external CSS file -->
+    <link rel="stylesheet" href="style.css">
     <style>
-        .piano-container {
-            perspective: 1000px;
-        }
+        /* Removed duplicate piano key styles, keeping only loading styles */
         
-        .white-key {
-            position: relative;
-            width: 40px;
-            height: 200px;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 0 0 5px 5px;
-            box-shadow: 0 5px 5px rgba(0,0,0,0.2);
-            transition: all 0.1s;
-            z-index: 1;
-        }
-        
-        .white-key.active {
-            background: #f0f0f0;
-            transform: translateY(2px);
-            box-shadow: 0 3px 3px rgba(0,0,0,0.2);
-        }
-        
-        .black-key {
-            position: absolute;
-            width: 24px;
-            height: 120px;
-            background: #222;
-            border-radius: 0 0 3px 3px;
-            box-shadow: 0 5px 5px rgba(0,0,0,0.4);
-            z-index: 2;
-            transition: all 0.1s;
-        }
-        
-        .black-key.active {
-            background: #111;
-            transform: translateY(2px);
-            box-shadow: 0 3px 3px rgba(0,0,0,0.4);
-        }
-        
-        .key-label {
-            position: absolute;
-            bottom: 10px;
-            width: 100%;
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-            /* Prevent text selection */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-        }
-        
-        .black-key .key-label {
-            color: #aaa;
-        }
-
         /* Loading indicator animation */
         .loading-indicator::after {
             content: '.';
@@ -86,13 +33,15 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800 mb-2">Keynius the AI Composer</h1>
-        <p class="text-gray-600">Describe a song or style — Keynius plays it live on the piano.</p>
+<body class="bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+    <div class="text-center mb-6 md:mb-10">
+        <h1 class="text-4xl md:text-5xl font-bold text-blue-900 mb-3">
+            <img src="assets/logo.png" alt="Keynius Logo" class="mx-auto h-24 md:h-32"> <!-- Increased height -->
+        </h1>
+        <p class="text-gray-700 text-lg">Describe a song or style — Keynius plays it live on the piano.</p>
     </div>
     
-    <div class="piano-container mb-8">
+    <div class="piano-container mb-6 md:mb-10 bg-white p-4 rounded-lg shadow-md max-w-7xl mx-auto">
         <div class="flex relative">
             <!-- Lowest octave (C3-B3) - Mouse Only -->
             <div class="white-key" data-note="C3">
@@ -185,88 +134,88 @@
             
             <!-- Black keys -->
             <!-- Lowest Octave (C#3-A#3) - Mouse Only -->
-            <div class="black-key" style="left: 28px;" data-note="C#3">
+            <div class="black-key" data-note="C#3">
                  <div class="key-label">(C#3)</div>
             </div>
-            <div class="black-key" style="left: 68px;" data-note="D#3">
+            <div class="black-key" data-note="D#3">
                  <div class="key-label">(D#3)</div>
             </div>
-            <div class="black-key" style="left: 148px;" data-note="F#3">
+            <div class="black-key" data-note="F#3">
                  <div class="key-label">(F#3)</div>
             </div>
-            <div class="black-key" style="left: 188px;" data-note="G#3">
+            <div class="black-key" data-note="G#3">
                  <div class="key-label">(G#3)</div>
             </div>
-            <div class="black-key" style="left: 228px;" data-note="A#3">
+            <div class="black-key" data-note="A#3">
                  <div class="key-label">(A#3)</div>
             </div>
             <!-- Mid Octave (C#4-A#4) - Keys: S D G H J -->
-            <div class="black-key" style="left: 308px;" data-note="C#4" data-key="s"> 
+            <div class="black-key" data-note="C#4" data-key="s">
                 <div class="key-label">(C#4)</div>
             </div>
-            <div class="black-key" style="left: 348px;" data-note="D#4" data-key="d"> 
+            <div class="black-key" data-note="D#4" data-key="d">
                 <div class="key-label">(D#4)</div>
             </div>
-            <div class="black-key" style="left: 428px;" data-note="F#4" data-key="g"> 
+            <div class="black-key" data-note="F#4" data-key="g">
                 <div class="key-label">(F#4)</div>
             </div>
-            <div class="black-key" style="left: 468px;" data-note="G#4" data-key="h"> 
+            <div class="black-key" data-note="G#4" data-key="h">
                 <div class="key-label">(G#4)</div>
             </div>
-            <div class="black-key" style="left: 508px;" data-note="A#4" data-key="j"> 
+            <div class="black-key" data-note="A#4" data-key="j">
                 <div class="key-label">(A#4)</div>
             </div>
             <!-- Upper Octave (C#5-A#5) - Keys: 2 3 5 6 7 -->
-            <div class="black-key" style="left: 588px;" data-note="C#5" data-key="2"> 
+            <div class="black-key" data-note="C#5" data-key="2">
                 <div class="key-label">(C#5)</div>
             </div>
-             <div class="black-key" style="left: 628px;" data-note="D#5" data-key="3"> 
+             <div class="black-key" data-note="D#5" data-key="3">
                 <div class="key-label">(D#5)</div>
             </div>
-            <div class="black-key" style="left: 708px;" data-note="F#5" data-key="5"> 
+            <div class="black-key" data-note="F#5" data-key="5">
                 <div class="key-label">(F#5)</div>
             </div>
-            <div class="black-key" style="left: 748px;" data-note="G#5" data-key="6"> 
+            <div class="black-key" data-note="G#5" data-key="6">
                 <div class="key-label">(G#5)</div>
             </div>
-            <div class="black-key" style="left: 788px;" data-note="A#5" data-key="7"> 
+            <div class="black-key" data-note="A#5" data-key="7">
                 <div class="key-label">(A#5)</div>
             </div>
             <!-- Highest Octave (C#6-A#6) - Mouse Only -->
-            <div class="black-key" style="left: 868px;" data-note="C#6"> 
+            <div class="black-key" data-note="C#6">
                  <div class="key-label">(C#6)</div>
             </div>
-             <div class="black-key" style="left: 908px;" data-note="D#6"> 
+             <div class="black-key" data-note="D#6">
                  <div class="key-label">(D#6)</div>
             </div>
-            <div class="black-key" style="left: 988px;" data-note="F#6"> 
+            <div class="black-key" data-note="F#6">
                  <div class="key-label">(F#6)</div>
             </div>
-            <div class="black-key" style="left: 1028px;" data-note="G#6"> 
+            <div class="black-key" data-note="G#6">
                  <div class="key-label">(G#6)</div>
             </div>
-            <div class="black-key" style="left: 1068px;" data-note="A#6"> 
+            <div class="black-key" data-note="A#6">
                  <div class="key-label">(A#6)</div>
             </div>
         </div>
     </div>
 
     <!-- AI Interaction Section -->
-    <div class="mt-8 max-w-xl w-full space-y-4">
-        <div id="ai-feedback" class="mb-2 text-gray-600 italic text-center min-h-[1.5em]"></div>
+    <div class="mt-6 md:mt-10 max-w-xl w-full space-y-4 bg-white p-6 rounded-lg shadow-md">
+        <div id="ai-feedback" class="mb-4 text-gray-600 italic text-center min-h-[1.5em]"></div>
         
         <div>
-            <input type="text" id="ai-chat-input" class="w-full border border-gray-300 p-2 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="E.g., 'a sad melody in C minor with pauses'">
+            <input type="text" id="ai-chat-input" class="w-full border border-gray-300 p-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out" placeholder="E.g., 'a sad melody in C minor with pauses'">
         </div>
 
-        <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-3">
-            <button id="ai-instruct-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                Generate & Play from Input
+        <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 pt-2">
+            <button id="ai-instruct-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-5 rounded-md shadow-sm hover:shadow-md transition duration-150 ease-in-out progress-button">
+                <span>Generate from Input</span>
             </button>
-            <button id="ai-random-play-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Play Random Melody
+            <button id="ai-random-play-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-md shadow-sm hover:shadow-md transition duration-150 ease-in-out progress-button">
+                <span>Random Melody</span>
             </button>
-            <button id="replay-button" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded hidden">
+            <button id="replay-button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-5 rounded-md shadow-sm hover:shadow-md transition duration-150 ease-in-out hidden">
                 Play Again
             </button>
         </div>
@@ -498,90 +447,108 @@
 
         let lastGeneratedSequence = null; // To store the last successfully generated sequence
 
+        // --- Helper function to update button progress visual --- 
+        function updateButtonProgress(buttonElement, progress) { // progress is 0.0 to 1.0
+             if (buttonElement && buttonElement.classList.contains('progress-button')) {
+                const percentage = Math.max(0, Math.min(100, progress * 100));
+                buttonElement.style.setProperty('--progress-width', `${percentage}%`);
+            }
+        }
+
         // Main function to orchestrate segment generation and playback
         async function generateAndPlaySequence(userPrompt = null) {
             const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
             const button = document.getElementById(buttonId);
             const feedbackDiv = document.getElementById('ai-feedback');
-            const replayButton = document.getElementById('replay-button'); // Get replay button
-            const originalButtonText = button.textContent;
+            const replayButton = document.getElementById('replay-button'); 
+            // --- Ensure we get the span element inside the button --- 
+            const originalButtonTextElement = button.querySelector('span'); 
+            const originalButtonText = originalButtonTextElement ? originalButtonTextElement.textContent : button.textContent; // Fallback
             
-            // Hide replay button at the start of generation
             if(replayButton) replayButton.classList.add('hidden'); 
 
             button.disabled = true;
+            // --- Add loading indicator class --- 
             button.classList.add('loading-indicator');
-            // Display a random tip while loading
+            
             const randomTip = loadingTips[Math.floor(Math.random() * loadingTips.length)];
             feedbackDiv.textContent = randomTip; 
             
+            // --- Reset progress at start --- 
+            updateButtonProgress(button, 0); 
+
             let fullSequence = [];
             let previousContext = [];
             let success = true;
 
             // --- Generate Segments --- 
             for (let i = 1; i <= numberOfSegments; i++) {
-                button.textContent = `Generating segment ${i}/${numberOfSegments}`;
+                // --- Update button text within span --- 
+                if (originalButtonTextElement) {
+                    originalButtonTextElement.textContent = `Generating segment ${i}/${numberOfSegments}`;
+                } else {
+                    button.textContent = `Generating segment ${i}/${numberOfSegments}`; // Fallback
+                }
+                
                 console.log(`--- Requesting Segment ${i} ---`);
                 try {
-                    // Pass suggestedTitle to fetchSegment
                     const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1); 
                     if (segmentSequence && segmentSequence.length > 0) {
-                        fullSequence.push(...segmentSequence); // Add segment to the full sequence
+                        fullSequence.push(...segmentSequence); 
                         console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
-                        // --- **Re-applying context update placement fix** ---
-                        // Update context *after* adding the segment for the *next* iteration
                         previousContext = fullSequence.slice(-contextLength); 
+                        // --- Update progress bar --- 
+                        updateButtonProgress(button, i / numberOfSegments);
                     } else {
-                        // Handle case where segment is empty/invalid
                         feedbackDiv.textContent = `Failed to generate a valid segment ${i}. Stopping.`;
                         console.warn(`Segment ${i} generation failed or returned empty.`);
                         success = false;
-                        break; // Stop generating further segments
+                        break; 
                     }
                 } catch (error) {
                     console.error(`Error fetching segment ${i}:`, error);
                     feedbackDiv.textContent = `Error during segment ${i}: ${error.message}. Stopping.`;
                     success = false;
-                    break; // Stop on error
+                    break; 
                 }
             } // End of loop
 
             // --- Play the full sequence if generation was successful --- 
             if (success && fullSequence.length > 0) {
-                // Store the sequence for replay
-                lastGeneratedSequence = [...fullSequence]; // Store a copy
-                // Show replay button
+                lastGeneratedSequence = [...fullSequence];
                 if(replayButton) replayButton.classList.remove('hidden');
 
-                 let feedbackMessage = "Okay, playing generated piece"; // Default message
+                 let feedbackMessage = "Okay, playing generated piece";
                  if (userPrompt) {
-                    feedbackMessage = `Okay, playing AI-generated piece inspired by: \"${userPrompt}\"`; 
+                    feedbackMessage = `Okay, playing AI-generated piece based on: \"${userPrompt}\"`; 
                  } else {
                     feedbackMessage = "Okay, playing generated random piece.";
                  }
                 feedbackDiv.textContent = feedbackMessage;
                 
-                // Disable buttons during playback
                 button.disabled = true;
                 if(replayButton) replayButton.disabled = true;
                 
-                await playSequence(fullSequence); // Play the combined sequence
+                await playSequence(fullSequence); 
 
-                // Re-enable buttons after playback
                 button.disabled = false; 
                 if(replayButton) replayButton.disabled = false;
 
             } else if (success && fullSequence.length === 0) {
-                // If loop finished but sequence is still empty (shouldn't happen often with current logic)
                 feedbackDiv.textContent = "Sorry, couldn't generate any music this time.";
             }
-            // If !success, feedback is already set in the loop
 
             // --- Cleanup --- 
             button.disabled = false;
-            button.textContent = originalButtonText;
+            // --- Restore button text in span --- 
+            if (originalButtonTextElement) {
+                originalButtonTextElement.textContent = originalButtonText;
+            } else {
+                button.textContent = originalButtonText; // Fallback
+            }
+            // --- Remove loading indicator class and reset progress --- 
             button.classList.remove('loading-indicator');
+            updateButtonProgress(button, 0); 
         }
 
         // Function to fetch a single segment from the AI

@@ -356,13 +356,13 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // Function to play polyphonic sequences
+        // Function to play polyphonic OR monophonic sequences
         async function playSequence(sequence) {
             const baseDurationMs = 400; // Base duration for multiplier 1
-            console.log("Starting polyphonic sequence playback...");
+            console.log("Starting sequence playback (mono/poly)...");
 
             for (const item of sequence) {
-                // --- Basic validation --- 
+                // --- Basic validation (remains the same) --- 
                 if (!Array.isArray(item) || item.length !== 2) {
                     console.warn("Skipping invalid item structure:", item);
                     continue;
@@ -374,22 +374,25 @@
                 }
                 const currentDurationMs = baseDurationMs * multiplier;
 
-                // --- Determine notes/pause for this step --- 
+                // --- Determine notes/pause based on eventData structure --- 
                 let notesToPlay = []; // Array of note names for this step
                 let isPause = false;
+                let isPoly = false;
 
-                if (Array.isArray(eventData)) { // Chord: [["Note1", "Note2"], multiplier]
+                if (Array.isArray(eventData)) { // Polyphonic chord: [["Note1", "Note2"], multiplier]
                     if (eventData.length === 2 && typeof eventData[0] === 'string' && typeof eventData[1] === 'string') {
                         notesToPlay = eventData;
+                        isPoly = true;
                     } else {
                         console.warn("Skipping invalid chord format:", item);
                         continue;
                     }
-                } else if (typeof eventData === 'string') { // Single note or pause
+                } else if (typeof eventData === 'string') { // Monophonic: ["Note" or "PAUSE", multiplier]
                     if (eventData === "PAUSE") {
                         isPause = true;
                     } else {
                         notesToPlay = [eventData]; // Single note
+                        isPoly = false;
                     }
                 } else {
                     console.warn("Skipping invalid event data type:", item);
@@ -401,7 +404,8 @@
                     console.log(`PAUSE for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
                     await sleep(currentDurationMs);
                 } else if (notesToPlay.length > 0) {
-                    console.log(`Playing notes: ${notesToPlay.join(', ')} for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
+                    const notesString = notesToPlay.join(', ');
+                    console.log(`Playing notes: ${notesString} for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
                     const activeKeys = [];
                     
                     // Start all notes simultaneously & activate keys
@@ -409,10 +413,10 @@
                         const pianoKey = document.querySelector(`[data-note="${note}"]`);
                         if (pianoKey && noteFrequencies[note]) {
                             pianoKey.classList.add('active');
-                            activeKeys.push(pianoKey); // Keep track of keys to deactivate
+                            activeKeys.push(pianoKey); 
                             playNote(noteFrequencies[note], currentDurationMs / 1000);
                         } else {
-                            console.warn(`Note ${note} in chord/note not found or invalid.`);
+                            console.warn(`Note ${note} in ${isPoly ? 'chord' : 'note'} not found or invalid.`);
                         }
                     }
                     
@@ -424,12 +428,12 @@
                         key.classList.remove('active');
                     }
 
-                } else { // Should not happen if validation is correct, but as fallback
+                } else { 
                      await sleep(currentDurationMs); 
                 }
             } // End of loop over sequence items
 
-            console.log("Polyphonic sequence finished.");
+            console.log("Sequence finished.");
         }
 
         // --- AI Music Generation ---
@@ -503,27 +507,49 @@
             console.log(`Fetching segment. Continuation: ${isContinuation}. Context length: ${context.length}`);
             const availableNotes = Object.keys(noteFrequencies).join(', ');
             const baseDurationInfo = "Use a duration multiplier: 1 for standard (quarter), 2 for double (half), 0.5 for half (eighth), etc.";
-            const outputFormatInfo = `Output the result as a JSON array of sequence items. Each item must be [\"Note\", mult], [\"PAUSE\", mult], or [[\"N1\", \"N2\"], mult].`;
-            const example = `Example: [[\"E4\", 1], [[\"F4\",\"A4\"], 1], [\"PAUSE\", 1]]`;
+
+            // --- Determine if polyphony is requested --- 
+            let wantsPolyphony = false;
+            if (userPrompt) {
+                const polyKeywords = ['polyphonic', 'two hands', 'harmony', 'chord', 'tvåstämmig', 'ackord', 'två händer'];
+                wantsPolyphony = polyKeywords.some(keyword => userPrompt.toLowerCase().includes(keyword));
+            }
+            console.log("Polyphony requested:", wantsPolyphony);
+
+            // --- Define output formats and examples based on polyphony --- 
+            let outputFormatInfo, example, systemMessage;
+            if (wantsPolyphony) {
+                outputFormatInfo = `Output the result as a JSON array of sequence items. Each item must be [\"Note\", mult], [\"PAUSE\", mult], or [[\"Note1\", \"Note2\"], mult] for simultaneous notes.`;
+                example = `Example: [[\"E4\", 1], [[\"F4\",\"A4\"], 1], [\"PAUSE\", 1]]`;
+                systemMessage = 'You are an AI music composer assistant generating polyphonic musical segments as JSON.';
+            } else {
+                outputFormatInfo = `Output the result as a JSON array of pairs. Each item must be [\"NoteName\", duration_multiplier] or [\"PAUSE\", duration_multiplier].`;
+                example = `Example: [[\"E4\", 1], [\"F4\", 1], [\"PAUSE\", 1], [\"G4\", 2]]`; // Monophonic example
+                systemMessage = 'You are an AI music composer assistant generating monophonic musical segments as JSON.';
+            }
 
             // --- Construct the prompt --- 
             let promptSegment;
+            const segmentLength = "(approx 4-8 measures)";
+            const musicType = wantsPolyphony ? "polyphonic (two-handed)" : "monophonic (single voice)";
+
             if (isContinuation) {
-                // If it's a continuation, ask AI to continue based on the original prompt and the context
-                const contextString = JSON.stringify(context); // Provide context as string
-                promptSegment = `Continue the polyphonic musical piece based on the initial request: \"${userPrompt || 'play something random'}\". The previous segment ended with approximately: ${contextString}.`;
-                promptSegment += ` Generate the *next* musical segment (approx 4-8 measures).`;
+                const contextString = JSON.stringify(context); 
+                promptSegment = `Continue the ${musicType} musical piece based on the initial request: \"${userPrompt || 'play something random'}\". The previous segment ended with approximately: ${contextString}.`;
+                promptSegment += ` Generate the *next* ${segmentLength} segment.`;
             } else {
-                // First segment prompt
                 const baseRequest = userPrompt 
-                                ? `Generate the *first* segment (approx 4-8 measures) of a polyphonic piece based on: \"${userPrompt}\".`
-                                : `Generate the *first* segment (approx 4-8 measures) of a simple, random polyphonic piece.`;
+                                ? `Generate the *first* ${segmentLength} segment of a ${musicType} piece based on: \"${userPrompt}\".`
+                                : `Generate the *first* ${segmentLength} segment of a simple, random ${musicType} piece.`;
                 promptSegment = baseRequest;
                  if (userPrompt && (userPrompt.toLowerCase().includes('c minor') || userPrompt.toLowerCase().includes('c-moll'))) {
                     promptSegment += ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
                 }
             }
-            promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]). Play simultaneous notes like [[\"N1\",\"N2\"], mult].`;
+            promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]).`;
+            if (wantsPolyphony) {
+                 promptSegment += ` Play simultaneous notes like [[\"N1\",\"N2\"], mult].`;
+            }
             promptSegment += ` ${baseDurationInfo}`; 
             promptSegment += ` ${outputFormatInfo}`; 
             promptSegment += ` ${example}`; 
@@ -543,12 +569,11 @@
                     body: JSON.stringify({
                         model: 'deepseek-chat',
                         messages: [
-                            // Adjusted system message slightly
-                            { role: 'system', content: 'You are an AI music composer assistant. Generate musical segments as JSON according to instructions.' }, 
+                            { role: 'system', content: systemMessage }, 
                             { role: 'user', content: promptSegment }
                         ],
-                        max_tokens: 800, // Keep max_tokens per segment reasonable, maybe adjust later
-                        temperature: 0.75 // Slightly higher temp might help variety between segments
+                        max_tokens: 800, 
+                        temperature: 0.75 
                     })
                 });
 
@@ -575,11 +600,11 @@
                         const jsonString = rawContent.substring(startIndex, endIndex + 1);
                         try {
                             segmentSequence = JSON.parse(jsonString);
-                             // Basic validation of the parsed structure (array of arrays)
-                             if (!Array.isArray(segmentSequence) || !segmentSequence.every(item => Array.isArray(item))) {
-                                console.warn("Parsed sequence is not an array of arrays.", segmentSequence);
+                             // **Basic validation - check if it's an array**
+                             if (!Array.isArray(segmentSequence)) {
+                                console.warn("Parsed sequence is not an array.", segmentSequence);
                                 segmentSequence = []; // Invalidate if structure is wrong
-                             }
+                             } // Further validation happens in playSequence
                         } catch (parseError) {
                             console.error("Failed to parse segment JSON:", parseError, "String:", jsonString);
                              segmentSequence = []; // Invalidate on parse error
@@ -592,11 +617,11 @@
                     console.error("Unexpected segment response structure:", data);
                     segmentSequence = [];
                 }
-                return segmentSequence; // Return the parsed (possibly empty) sequence
+                return segmentSequence; 
 
             } catch (error) {
                 console.error('Error in fetchSegment API call:', error);
-                throw error; // Re-throw the error to be caught by the main loop
+                throw error; 
             }
         }
 

@@ -674,12 +674,19 @@
                 promptSegment = baseRequest;
                  // Add key instructions if specified
                  const lowerUserPrompt = userPrompt ? userPrompt.toLowerCase() : '';
+                 let keyInstruction = '';
+                 // Specific keys first
                  if (lowerUserPrompt.includes('c minor') || lowerUserPrompt.includes('c-moll')) {
-                    promptSegment += ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
-                 } else if (lowerUserPrompt.includes('minor') || lowerUserPrompt.includes('moll')) {
-                     // Default to A minor for generic minor requests
-                     promptSegment += ` For a minor key feel, primarily use the notes A, B, C, D, E, F, G.`;
-                 }
+                    keyInstruction = ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
+                 } else if (lowerUserPrompt.includes('d minor') || lowerUserPrompt.includes('d moll')) {
+                    keyInstruction = ` For D minor, primarily use D, E, F, G, A, Bb(A#), C.`;
+                 } // Add more specific minor keys here if needed...
+                 
+                 // Generic minor if no specific key matched
+                 else if (!keyInstruction && (lowerUserPrompt.includes('minor') || lowerUserPrompt.includes('moll'))) {
+                     keyInstruction = ` For a generic minor key feel, primarily use the notes A, B, C, D, E, F, G (like A minor).`;
+                  }
+                 promptSegment += keyInstruction; // Add the instruction if any
             }
             promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]).`;
             if (wantsPolyphony) {

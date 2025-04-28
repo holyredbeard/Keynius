@@ -526,9 +526,11 @@
 
                  let feedbackMessage = "Okay, playing generated piece"; // Default message
                  if (userPrompt) {
-                    feedbackMessage = `Okay, playing generated piece based on: \"${userPrompt}\"`;
+                    // Clarify that the title is a suggestion and the piece is generated
+                    feedbackMessage = `Okay, playing AI-generated piece inspired by: \"${userPrompt}\"`; 
                     if (suggestedTitle) {
-                        feedbackMessage += ` (AI suggested inspiration: ${suggestedTitle})`; // Add suggestion
+                        // Use clearer wording for the suggestion
+                        feedbackMessage += ` (AI suggested title: ${suggestedTitle})`; 
                     }
                  } else {
                     feedbackMessage = "Okay, playing generated random piece.";

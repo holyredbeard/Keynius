@@ -675,18 +675,22 @@
                  // Add key instructions if specified
                  const lowerUserPrompt = userPrompt ? userPrompt.toLowerCase() : '';
                  let keyInstruction = '';
-                 // Specific keys first
-                 if (lowerUserPrompt.includes('c minor') || lowerUserPrompt.includes('c-moll')) {
-                    keyInstruction = ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
-                 } else if (lowerUserPrompt.includes('d minor') || lowerUserPrompt.includes('d moll')) {
-                    keyInstruction = ` For D minor, primarily use D, E, F, G, A, Bb(A#), C.`;
-                 } // Add more specific minor keys here if needed...
-                 
-                 // Generic minor if no specific key matched
-                 else if (!keyInstruction && (lowerUserPrompt.includes('minor') || lowerUserPrompt.includes('moll'))) {
-                     keyInstruction = ` For a generic minor key feel, primarily use the notes A, B, C, D, E, F, G (like A minor).`;
-                  }
-                 promptSegment += keyInstruction; // Add the instruction if any
+                 const minorFeelInstruction = " Try to create a melody with a melancholic or dramatic character typical for minor keys. Emphasizing the root, minor third, and fifth notes can help establish this feeling.";
+                  // Specific keys first
+                  if (lowerUserPrompt.includes('c minor') || lowerUserPrompt.includes('c-moll')) {
+                     keyInstruction = ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
+                     keyInstruction += minorFeelInstruction.replace('root', 'C').replace('minor third', 'Eb').replace('fifth', 'G');
+                  } else if (lowerUserPrompt.includes('d minor') || lowerUserPrompt.includes('d moll')) {
+                     keyInstruction = ` For D minor, primarily use D, E, F, G, A, Bb(A#), C.`;
+                     keyInstruction += minorFeelInstruction.replace('root', 'D').replace('minor third', 'F').replace('fifth', 'A');
+                  } // Add more specific minor keys here if needed...
+                  
+                  // Generic minor if no specific key matched
+                  else if (!keyInstruction && (lowerUserPrompt.includes('minor') || lowerUserPrompt.includes('moll'))) {
+                      keyInstruction = ` For a generic minor key feel, primarily use the notes A, B, C, D, E, F, G (like A minor).`;
+                      keyInstruction += minorFeelInstruction.replace('root', 'A').replace('minor third', 'C').replace('fifth', 'E');
+                   }
+                  promptSegment += keyInstruction; // Add the instruction if any
             }
             promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]).`;
             if (wantsPolyphony) {

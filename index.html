@@ -233,34 +233,28 @@
         // Audio context setup
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Function to play a note with velocity
-        function playNote(frequency, duration = 0.7, velocity = 0.7) { // Added velocity (0.0 to 1.0)
-            // Clamp velocity to a reasonable range (e.g., 0.1 to 1.0) to ensure it's audible
-            const clampedVelocity = Math.max(0.1, Math.min(1.0, velocity)); 
-
+        // Function to play a note (velocity removed)
+        function playNote(frequency, duration = 0.7) { 
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
             oscillator.type = 'triangle'; 
             oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
             
-            // ADSR-like envelope simulation using velocity
+            // Simple ADSR-like envelope simulation (reverted)
             const now = audioContext.currentTime;
             const attackTime = 0.01;  
             const decayTime = 0.1;   
-            // Scale peak and sustain levels by velocity
-            const basePeakVolume = 0.8; // Max possible volume
-            const baseSustainRatio = 0.5; // Sustain level relative to peak
-            const currentPeakVolume = basePeakVolume * clampedVelocity;
-            const currentSustainLevel = currentPeakVolume * baseSustainRatio;
+            const sustainLevel = 0.3; // Fixed sustain level
+            const peakVolume = 0.6;   // Fixed peak volume
 
             gainNode.gain.setValueAtTime(0, now); 
-            gainNode.gain.linearRampToValueAtTime(currentPeakVolume, now + attackTime); 
-            gainNode.gain.exponentialRampToValueAtTime(currentSustainLevel, now + attackTime + decayTime); 
+            gainNode.gain.linearRampToValueAtTime(peakVolume, now + attackTime); 
+            gainNode.gain.exponentialRampToValueAtTime(sustainLevel, now + attackTime + decayTime); 
             
             const releaseStartTime = now + duration * 0.8; 
             if (releaseStartTime > now + attackTime + decayTime) { 
-                 gainNode.gain.setValueAtTime(currentSustainLevel, releaseStartTime);
+                 gainNode.gain.setValueAtTime(sustainLevel, releaseStartTime);
                  gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration); 
             } else {
                  gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration); 
@@ -360,55 +354,20 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // Function to play polyphonic OR monophonic sequences with velocity
+        // Function to play polyphonic OR monophonic sequences (velocity removed)
         async function playSequence(sequence) {
             const baseDurationMs = 400; 
-            const defaultVelocity = 0.7; // Default velocity if not provided by AI
-            console.log("Starting sequence playback with velocity...");
+            console.log("Starting sequence playback (mono/poly, no velocity)...");
 
             for (const item of sequence) {
-                // --- Basic validation (must be array) --- 
-                if (!Array.isArray(item)) {
-                    console.warn("Skipping invalid item structure (not an array):", item);
-                    continue;
-                }
-
-                let eventData, multiplier, notesToPlay = [], isPause = false;
-                let velocities = {}; // Store velocity per note {noteName: velocity}
-
-                // --- Determine format and extract data --- 
-                if (item.length === 2 && item[0] === "PAUSE") { // Pause: ["PAUSE", mult]
-                    isPause = true;
-                    multiplier = item[1];
-                } else if (item.length === 3 && typeof item[0] === 'string') { // Mono note: ["Note", mult, vel]
-                    eventData = item[0];
-                    multiplier = item[1];
-                    const vel = (typeof item[2] === 'number' && item[2] >= 0 && item[2] <= 1) ? item[2] : defaultVelocity;
-                    notesToPlay = [eventData];
-                    velocities[eventData] = vel;
-                } else if (item.length === 2 && Array.isArray(item[0])) { // Poly note: [[ ["N1", v1], ["N2", v2] ], mult]
-                     const chordData = item[0];
-                     multiplier = item[1];
-                     if (Array.isArray(chordData)) {
-                         for (const noteVelPair of chordData) {
-                             if (Array.isArray(noteVelPair) && noteVelPair.length === 2 && typeof noteVelPair[0] === 'string') {
-                                 const note = noteVelPair[0];
-                                 const vel = (typeof noteVelPair[1] === 'number' && noteVelPair[1] >= 0 && noteVelPair[1] <= 1) ? noteVelPair[1] : defaultVelocity;
-                                 notesToPlay.push(note);
-                                 velocities[note] = vel;
-                             } else {
-                                console.warn("Skipping invalid note/velocity pair in chord:", noteVelPair);
-                             }
-                         }
-                     } else {
-                         console.warn("Skipping invalid chord data structure:", item);
-                         continue;
-                     }
-                } else {
-                    console.warn("Skipping unrecognized item structure:", item);
+                // Basic validation
+                if (!Array.isArray(item) || item.length !== 2) {
+                    console.warn("Skipping invalid item structure:", item);
                     continue;
                 }
                 
+                const [eventData, multiplier] = item;
+
                 // Validate multiplier
                 if (typeof multiplier !== 'number' || multiplier <= 0) {
                     console.warn("Skipping item with invalid multiplier:", item);
@@ -416,23 +375,44 @@
                 }
                 const currentDurationMs = baseDurationMs * multiplier;
 
+                let notesToPlay = []; 
+                let isPause = false;
+
+                // Determine format and extract data (reverted)
+                if (Array.isArray(eventData)) { // Poly note: [["N1", "N2"], mult]
+                    if (eventData.length === 2 && typeof eventData[0] === 'string' && typeof eventData[1] === 'string') {
+                        notesToPlay = eventData;
+                    } else {
+                        console.warn("Skipping invalid chord format:", item);
+                        continue;
+                    }
+                } else if (typeof eventData === 'string') { // Mono note or pause: ["Note" or "PAUSE", mult]
+                    if (eventData === "PAUSE") {
+                        isPause = true;
+                    } else {
+                        notesToPlay = [eventData]; // Single note
+                    }
+                } else {
+                    console.warn("Skipping unrecognized item structure:", item);
+                    continue;
+                }
+
                 // --- Execute the step --- 
                 if (isPause) {
                     console.log(`PAUSE for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
                     await sleep(currentDurationMs);
                 } else if (notesToPlay.length > 0) {
-                    const notesString = notesToPlay.map(n => `${n}(${(velocities[n] || defaultVelocity).toFixed(1)})`).join(', ');
+                    const notesString = notesToPlay.join(', ');
                     console.log(`Playing notes: ${notesString} for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
                     const activeKeys = [];
                     
                     for (const note of notesToPlay) {
                         const pianoKey = document.querySelector(`[data-note="${note}"]`);
-                        const noteVelocity = velocities[note] || defaultVelocity;
                         if (pianoKey && noteFrequencies[note]) {
                             pianoKey.classList.add('active');
                             activeKeys.push(pianoKey); 
-                            // Pass velocity to playNote
-                            playNote(noteFrequencies[note], currentDurationMs / 1000, noteVelocity); 
+                            // Call playNote without velocity
+                            playNote(noteFrequencies[note], currentDurationMs / 1000); 
                         } else {
                             console.warn(`Note ${note} not found or invalid.`);
                         }
@@ -443,8 +423,7 @@
                     for (const key of activeKeys) {
                         key.classList.remove('active');
                     }
-                } else {
-                     // Handles cases where chord parsing failed but multiplier was valid
+                } else { 
                      console.log(`Implicit pause/skipped notes for ${currentDurationMs}ms`);
                      await sleep(currentDurationMs); 
                 }
@@ -626,7 +605,6 @@
             console.log(`Fetching segment. Continuation: ${isContinuation}. Context length: ${context.length}`);
             const availableNotes = Object.keys(noteFrequencies).join(', ');
             const baseDurationInfo = "Use a duration multiplier: 1 for standard (quarter), 2 for double (half), 0.5 for half (eighth), etc.";
-            const velocityInfo = "Include velocity (loudness) as a number between 0.0 (soft) and 1.0 (loud), default is 0.7.";
 
             // --- Determine if polyphony is requested --- 
             let wantsPolyphony = false;
@@ -636,19 +614,19 @@
             }
             console.log("Polyphony requested:", wantsPolyphony);
 
-            // --- Define output formats and examples based on polyphony --- 
+            // --- Define output formats and examples based on polyphony (velocity removed) --- 
             let outputFormatInfo, example, systemMessage;
             if (wantsPolyphony) {
-                outputFormatInfo = `Output as JSON array. Items: [ [ ["Note1", velocity1], ["Note2", velocity2] ], duration_multiplier ] for chords, ["Note", mult, velocity], or ["PAUSE", mult].`;
-                example = `Example: [[ ["C4", 0.8], ["E4", 0.7] ], 1], ["G4", 1, 0.9], ["PAUSE", 0.5]]`;
-                systemMessage = 'You are an AI music composer generating polyphonic segments with velocity.';
+                outputFormatInfo = `Output as JSON array. Items: [ ["Note1", "Note2"], duration_multiplier ] for chords, ["Note", mult], or ["PAUSE", mult].`;
+                example = `Example: [[ ["C4", "E4"] ], 1], ["G4", 1], ["PAUSE", 0.5]]`; // Poly example without velocity
+                systemMessage = 'You are an AI music composer generating polyphonic segments.';
             } else {
-                outputFormatInfo = `Output as JSON array. Items: ["NoteName", duration_multiplier, velocity] or ["PAUSE", duration_multiplier].`;
-                example = `Example: [[\"E4\", 1, 0.8], [\"F4\", 1, 0.6], [\"PAUSE\", 1], [\"G4\", 2, 1.0]]`; // Monophonic example with velocity
-                systemMessage = 'You are an AI music composer generating monophonic segments with velocity.';
+                outputFormatInfo = `Output as JSON array. Items: ["NoteName", duration_multiplier] or ["PAUSE", duration_multiplier].`;
+                example = `Example: [[\"E4\", 1], [\"F4\", 1], [\"PAUSE\", 1], [\"G4\", 2]]`; // Mono example (no velocity)
+                systemMessage = 'You are an AI music composer generating monophonic segments.';
             }
 
-            // --- Construct the prompt --- 
+            // --- Construct the prompt (velocity removed) --- 
             let promptSegment;
             const segmentLength = "(approx 4-8 measures)";
             const musicType = wantsPolyphony ? "polyphonic (two-handed)" : "monophonic (single voice)";
@@ -667,11 +645,10 @@
                 }
             }
             promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]).`;
-            promptSegment += ` ${velocityInfo}`; // Add velocity info
             if (wantsPolyphony) {
-                 promptSegment += ` For simultaneous notes, use format [[\"N1\", vel1], [\"N2\", vel2]], mult]. Single notes: [\"Note\", mult, vel].`;
+                 promptSegment += ` For simultaneous notes, use format [[\"N1\", \"N2\"], mult]. Single notes: [\"Note\", mult].`;
             } else {
-                 promptSegment += ` Use format [\"Note\", mult, velocity].`;
+                 promptSegment += ` Use format [\"Note\", mult].`;
             }
             promptSegment += ` ${baseDurationInfo}`; 
             promptSegment += ` ${outputFormatInfo}`; 

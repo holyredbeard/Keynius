@@ -647,9 +647,14 @@
                                 ? `Generate the *first* ${segmentLength} segment of a ${musicType} piece based on: \"${userPrompt}\".`
                                 : `Generate the *first* ${segmentLength} segment of a simple, random ${musicType} piece.`;
                 promptSegment = baseRequest;
-                 if (userPrompt && (userPrompt.toLowerCase().includes('c minor') || userPrompt.toLowerCase().includes('c-moll'))) {
+                 // Add key instructions if specified
+                 const lowerUserPrompt = userPrompt ? userPrompt.toLowerCase() : '';
+                 if (lowerUserPrompt.includes('c minor') || lowerUserPrompt.includes('c-moll')) {
                     promptSegment += ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
-                }
+                 } else if (lowerUserPrompt.includes('minor') || lowerUserPrompt.includes('moll')) {
+                     // Default to A minor for generic minor requests
+                     promptSegment += ` For a minor key feel, primarily use the notes A, B, C, D, E, F, G.`;
+                 }
             }
             promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]).`;
             if (wantsPolyphony) {

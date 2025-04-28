@@ -461,9 +461,9 @@
                     if (segmentSequence && segmentSequence.length > 0) {
                         fullSequence.push(...segmentSequence); // Add segment to the full sequence
                         console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
-                        // --- **CORRECTED CONTEXT UPDATE PLACEMENT** ---
-                        // Update context *after* adding the segment and *before* the next iteration might need it
-                        previousContext = fullSequence.slice(-contextLength);
+                        // --- **Re-applying context update placement fix** ---
+                        // Update context *after* adding the segment for the *next* iteration
+                        previousContext = fullSequence.slice(-contextLength); 
                     } else {
                         // Handle case where segment is empty/invalid
                         feedbackDiv.textContent = `Failed to generate a valid segment ${i}. Stopping.`;
@@ -477,7 +477,7 @@
                     success = false;
                     break; // Stop on error
                 }
-            }
+            } // End of loop
 
             // --- Play the full sequence if generation was successful --- 
             if (success && fullSequence.length > 0) {
@@ -527,6 +527,7 @@
             promptSegment += ` ${baseDurationInfo}`; 
             promptSegment += ` ${outputFormatInfo}`; 
             promptSegment += ` ${example}`; 
+            promptSegment += ` Ensure all brackets [ ] are correctly opened and closed.`;
             promptSegment += ` Output ONLY the JSON array for this segment. No other text or markdown.`;
             
             console.log("Segment Prompt:", promptSegment);

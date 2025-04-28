@@ -223,6 +223,9 @@
             <button id="ai-random-play-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Play Random Melody
             </button>
+            <button id="replay-button" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded hidden">
+                Play Again
+            </button>
         </div>
     </div>
 
@@ -453,13 +456,19 @@
             "Thinking musically..."
         ];
 
+        let lastGeneratedSequence = null; // To store the last successfully generated sequence
+
         // Main function to orchestrate segment generation and playback
         async function generateAndPlaySequence(userPrompt = null) {
             const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
             const button = document.getElementById(buttonId);
             const feedbackDiv = document.getElementById('ai-feedback');
+            const replayButton = document.getElementById('replay-button'); // Get replay button
             const originalButtonText = button.textContent;
             
+            // Hide replay button at the start of generation
+            if(replayButton) replayButton.classList.add('hidden'); 
+
             button.disabled = true;
             button.classList.add('loading-indicator');
             // Display a random tip while loading
@@ -510,6 +519,11 @@
 
             // --- Play the full sequence if generation was successful --- 
             if (success && fullSequence.length > 0) {
+                // Store the sequence for replay
+                lastGeneratedSequence = [...fullSequence]; // Store a copy
+                // Show replay button
+                if(replayButton) replayButton.classList.remove('hidden');
+
                  let feedbackMessage = "Okay, playing generated piece"; // Default message
                  if (userPrompt) {
                     feedbackMessage = `Okay, playing generated piece based on: \"${userPrompt}\"`;
@@ -520,7 +534,17 @@
                     feedbackMessage = "Okay, playing generated random piece.";
                  }
                 feedbackDiv.textContent = feedbackMessage;
+                
+                // Disable buttons during playback
+                button.disabled = true;
+                if(replayButton) replayButton.disabled = true;
+                
                 await playSequence(fullSequence); // Play the combined sequence
+
+                // Re-enable buttons after playback
+                button.disabled = false; 
+                if(replayButton) replayButton.disabled = false;
+
             } else if (success && fullSequence.length === 0) {
                 // If loop finished but sequence is still empty (shouldn't happen often with current logic)
                 feedbackDiv.textContent = "Sorry, couldn't generate any music this time.";
@@ -744,6 +768,36 @@
                     const feedbackDiv = document.getElementById('ai-feedback');
                     if(feedbackDiv) feedbackDiv.textContent = "Please enter instructions first.";
                 }
+            }
+        });
+
+        // Add event listener for the replay button
+        document.getElementById('replay-button')?.addEventListener('click', async () => {
+            const replayButton = document.getElementById('replay-button');
+            const instructButton = document.getElementById('ai-instruct-button');
+            const randomButton = document.getElementById('ai-random-play-button');
+            const feedbackDiv = document.getElementById('ai-feedback');
+
+            if (lastGeneratedSequence && lastGeneratedSequence.length > 0) {
+                console.log("Replaying last sequence...");
+                if(feedbackDiv) feedbackDiv.textContent = "Replaying the last generated piece...";
+
+                // Disable buttons during replay
+                if(replayButton) replayButton.disabled = true;
+                if(instructButton) instructButton.disabled = true;
+                if(randomButton) randomButton.disabled = true;
+                
+                await playSequence(lastGeneratedSequence);
+
+                // Re-enable buttons after replay
+                if(replayButton) replayButton.disabled = false;
+                 if(instructButton) instructButton.disabled = false;
+                if(randomButton) randomButton.disabled = false;
+                if(feedbackDiv) feedbackDiv.textContent = "Replay finished.";
+
+            } else {
+                console.warn("No sequence available to replay.");
+                 if(feedbackDiv) feedbackDiv.textContent = "Nothing generated yet to replay.";
             }
         });
 

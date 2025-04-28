@@ -488,7 +488,8 @@
                 button.textContent = `Generating segment ${i}/${numberOfSegments}`;
                 console.log(`--- Requesting Segment ${i} ---`);
                 try {
-                    const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1);
+                    // Pass suggestedTitle to fetchSegment
+                    const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1, suggestedTitle); 
                     if (segmentSequence && segmentSequence.length > 0) {
                         fullSequence.push(...segmentSequence); // Add segment to the full sequence
                         console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
@@ -601,7 +602,7 @@
         }
 
         // Function to fetch a single segment from the AI
-        async function fetchSegment(userPrompt, context, isContinuation) {
+        async function fetchSegment(userPrompt, context, isContinuation, suggestedTitle) {
             console.log(`Fetching segment. Continuation: ${isContinuation}. Context length: ${context.length}`);
             const availableNotes = Object.keys(noteFrequencies).join(', ');
             const baseDurationInfo = "Use a duration multiplier: 1 for standard (quarter), 2 for double (half), 0.5 for half (eighth), etc.";
@@ -633,8 +634,14 @@
 
             if (isContinuation) {
                 const contextString = JSON.stringify(context); 
-                promptSegment = `Continue the ${musicType} musical piece based on the initial request: \"${userPrompt || 'play something random'}\". The previous segment ended with approximately: ${contextString}.`;
-                promptSegment += ` Generate the *next* ${segmentLength} segment.`;
+                // ** Use suggestedTitle to reinforce the specific song **
+                const songReference = suggestedTitle ? `the specific song: \"${suggestedTitle}\"` : `the musical piece`;
+                const originalRequestInfo = userPrompt ? ` (originally requested as \"${userPrompt}\")` : "";
+                
+                promptSegment = `Continue generating ${songReference}${originalRequestInfo}.`;
+                promptSegment += ` It is crucial that you strictly follow the known melody and structure of ${songReference} if it's a well-known piece.`;
+                promptSegment += ` The previous segment ended with approximately: ${contextString}.`;
+                promptSegment += ` Generate ONLY the *next* ${segmentLength} JSON array segment, continuing the melody accurately.`;
             } else {
                 const baseRequest = userPrompt 
                                 ? `Generate the *first* ${segmentLength} segment of a ${musicType} piece based on: \"${userPrompt}\".`

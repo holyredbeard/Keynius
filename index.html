@@ -467,9 +467,21 @@
             feedbackDiv.textContent = randomTip; 
             
             let fullSequence = [];
-            let previousContext = []; // Store the last few items of the previous segment
+            let previousContext = [];
             let success = true;
+            let suggestedTitle = null; // Variable to store the suggested title
 
+            // --- Fetch title suggestion first (if applicable) --- 
+            if (userPrompt) {
+                try {
+                    suggestedTitle = await fetchSongTitleSuggestion(userPrompt);
+                } catch (titleError) {
+                    // Log error but continue with music generation anyway
+                    console.error("Failed to fetch title suggestion:", titleError);
+                }
+            }
+
+            // --- Generate Segments --- 
             for (let i = 1; i <= numberOfSegments; i++) {
                 button.textContent = `Generating segment ${i}/${numberOfSegments}`;
                 console.log(`--- Requesting Segment ${i} ---`);
@@ -498,9 +510,15 @@
 
             // --- Play the full sequence if generation was successful --- 
             if (success && fullSequence.length > 0) {
-                 const feedbackMessage = userPrompt 
-                    ? `Okay, playing generated piece based on: \"${userPrompt}\"`
-                    : "Okay, playing generated random piece.";
+                 let feedbackMessage = "Okay, playing generated piece"; // Default message
+                 if (userPrompt) {
+                    feedbackMessage = `Okay, playing generated piece based on: \"${userPrompt}\"`;
+                    if (suggestedTitle) {
+                        feedbackMessage += ` (AI suggested inspiration: ${suggestedTitle})`; // Add suggestion
+                    }
+                 } else {
+                    feedbackMessage = "Okay, playing generated random piece.";
+                 }
                 feedbackDiv.textContent = feedbackMessage;
                 await playSequence(fullSequence); // Play the combined sequence
             } else if (success && fullSequence.length === 0) {
@@ -513,6 +531,54 @@
             button.disabled = false;
             button.textContent = originalButtonText;
             button.classList.remove('loading-indicator');
+        }
+
+        // Function to ask AI for a song title suggestion based on user prompt
+        async function fetchSongTitleSuggestion(userPrompt) {
+            if (!userPrompt) return null; // No prompt, no suggestion
+            
+            console.log("Requesting song title suggestion for:", userPrompt);
+            const titlePrompt = `A user wants to hear music based on the request: \"${userPrompt}\". What specific, well-known song title could serve as inspiration for a short piano piece based on this request? Respond with ONLY the song title and artist (if applicable), like "Like a Prayer - Madonna" or "Für Elise". Do not include any other explanation, quotation marks, or formatting.`;
+
+            try {
+                const response = await fetch(deepseekApiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${deepseekApiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek-chat', 
+                        messages: [
+                            { role: 'system', content: 'You suggest relevant song titles based on user requests.' },
+                            { role: 'user', content: titlePrompt }
+                        ],
+                        max_tokens: 50, // Short response needed
+                        temperature: 0.5 // Less creative, more direct answer preferred
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error(`Title suggestion API error: ${response.status} ${response.statusText}`);
+                    return null;
+                }
+
+                const data = await response.json();
+
+                if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+                    let suggestedTitle = data.choices[0].message.content.trim();
+                    // Basic cleanup: remove potential quotes
+                    suggestedTitle = suggestedTitle.replace(/^"|"$/g, ''); 
+                    console.log("AI suggested title:", suggestedTitle);
+                    return suggestedTitle;
+                } else {
+                    console.warn("Could not extract title suggestion from AI response.");
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error fetching song title suggestion:", error);
+                return null;
+            }
         }
 
         // Function to fetch a single segment from the AI

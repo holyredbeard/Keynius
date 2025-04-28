@@ -451,22 +451,6 @@
 
         let lastGeneratedSequence = null; // To store the last successfully generated sequence
 
-        // Helper to guess if prompt asks for a specific song/artist
-        function looksLikeSpecificSongRequest(prompt) {
-            if (!prompt) return false;
-            const lowerPrompt = prompt.toLowerCase();
-            // Keywords suggesting specific entity rather than style/mood
-            const keywords = ['play', 'by', 'av', 'spela', 'artist:', 'song:', 'låt:', 'från']; 
-            // Simple check for quotes
-            if (lowerPrompt.includes('"') || lowerPrompt.includes("'")) return true;
-            // Check if keywords are followed by likely proper nouns (heuristic)
-            return keywords.some(kw => {
-                const index = lowerPrompt.indexOf(kw);
-                // Check if keyword exists and is followed by something substantial
-                return index !== -1 && lowerPrompt.length > index + kw.length + 2; 
-            });
-        }
-
         // Main function to orchestrate segment generation and playback
         async function generateAndPlaySequence(userPrompt = null) {
             const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
@@ -487,21 +471,6 @@
             let fullSequence = [];
             let previousContext = [];
             let success = true;
-            let suggestedTitle = null; // Variable to store the suggested title
-
-            // --- Fetch title suggestion ONLY if it looks like a specific request --- 
-            if (userPrompt && looksLikeSpecificSongRequest(userPrompt)) {
-                try {
-                    feedbackDiv.textContent = "(Checking for song title...)"; // Temporary feedback
-                    suggestedTitle = await fetchSongTitleSuggestion(userPrompt);
-                     // Restore random tip if title check was fast
-                    const randomTip = loadingTips[Math.floor(Math.random() * loadingTips.length)];
-                    feedbackDiv.textContent = randomTip;
-                } catch (titleError) {
-                    // Log error but continue with music generation anyway
-                    console.error("Failed to fetch title suggestion:", titleError);
-                }
-            }
 
             // --- Generate Segments --- 
             for (let i = 1; i <= numberOfSegments; i++) {
@@ -509,7 +478,7 @@
                 console.log(`--- Requesting Segment ${i} ---`);
                 try {
                     // Pass suggestedTitle to fetchSegment
-                    const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1, suggestedTitle); 
+                    const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1); 
                     if (segmentSequence && segmentSequence.length > 0) {
                         fullSequence.push(...segmentSequence); // Add segment to the full sequence
                         console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
@@ -540,12 +509,7 @@
 
                  let feedbackMessage = "Okay, playing generated piece"; // Default message
                  if (userPrompt) {
-                    // Clarify that the title is a suggestion and the piece is generated
                     feedbackMessage = `Okay, playing AI-generated piece inspired by: \"${userPrompt}\"`; 
-                    if (suggestedTitle) {
-                        // Use clearer wording for the suggestion
-                        feedbackMessage += ` (AI suggested title: ${suggestedTitle})`; 
-                    }
                  } else {
                     feedbackMessage = "Okay, playing generated random piece.";
                  }
@@ -573,56 +537,8 @@
             button.classList.remove('loading-indicator');
         }
 
-        // Function to ask AI for a song title suggestion based on user prompt
-        async function fetchSongTitleSuggestion(userPrompt) {
-            if (!userPrompt) return null; // No prompt, no suggestion
-            
-            console.log("Requesting song title suggestion for:", userPrompt);
-            const titlePrompt = `A user wants to hear music based on the request: \"${userPrompt}\". What specific, well-known song title could serve as inspiration for a short piano piece based on this request? Respond with ONLY the song title and artist (if applicable), like "Like a Prayer - Madonna" or "Für Elise". Do not include any other explanation, quotation marks, or formatting.`;
-
-            try {
-                const response = await fetch(deepseekApiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${deepseekApiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'deepseek-chat', 
-                        messages: [
-                            { role: 'system', content: 'You suggest relevant song titles based on user requests.' },
-                            { role: 'user', content: titlePrompt }
-                        ],
-                        max_tokens: 50, // Short response needed
-                        temperature: 0.5 // Less creative, more direct answer preferred
-                    })
-                });
-
-                if (!response.ok) {
-                    console.error(`Title suggestion API error: ${response.status} ${response.statusText}`);
-                    return null;
-                }
-
-                const data = await response.json();
-
-                if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-                    let suggestedTitle = data.choices[0].message.content.trim();
-                    // Basic cleanup: remove potential quotes
-                    suggestedTitle = suggestedTitle.replace(/^"|"$/g, ''); 
-                    console.log("AI suggested title:", suggestedTitle);
-                    return suggestedTitle;
-                } else {
-                    console.warn("Could not extract title suggestion from AI response.");
-                    return null;
-                }
-            } catch (error) {
-                console.error("Error fetching song title suggestion:", error);
-                return null;
-            }
-        }
-
         // Function to fetch a single segment from the AI
-        async function fetchSegment(userPrompt, context, isContinuation, suggestedTitle) {
+        async function fetchSegment(userPrompt, context, isContinuation) {
             console.log(`Fetching segment. Continuation: ${isContinuation}. Context length: ${context.length}`);
             const availableNotes = Object.keys(noteFrequencies).join(', ');
             const baseDurationInfo = "Use a duration multiplier: 1 for standard (quarter), 2 for double (half), 0.5 for half (eighth), etc.";
@@ -654,17 +570,8 @@
 
             if (isContinuation) {
                 const contextString = JSON.stringify(context); 
-                // Use suggestedTitle only if it exists
-                const songReference = suggestedTitle ? `the specific song: \"${suggestedTitle}\"` : `the musical piece`;
-                const originalRequestInfo = userPrompt ? ` (based on initial request: \"${userPrompt}\")` : ""; // Adjusted wording
                 
-                promptSegment = `Continue generating ${songReference}${originalRequestInfo}.`;
-                // Only emphasize following the known melody if we have a specific title suggestion
-                if (suggestedTitle) { 
-                    promptSegment += ` It is crucial that you strictly follow the known melody and structure of \"${suggestedTitle}\" if it's a well-known piece.`;
-                } else {
-                    promptSegment += ` Continue in a similar style and key.`; // Generic continuation
-                }
+                promptSegment = `Continue generating the musical piece.`;
                 promptSegment += ` The previous segment ended with approximately: ${contextString}.`;
                 promptSegment += ` Generate ONLY the *next* ${segmentLength} JSON array segment, continuing the melody accurately or in style.`; // Adjusted wording
             } else {

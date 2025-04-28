@@ -433,51 +433,104 @@
         }
 
         // --- AI Music Generation ---
-        const deepseekApiKey = 'sk-add35bac795a45528576d6ae8ee2b5dc'; // WARNING: Exposing API key in frontend code!
+        const deepseekApiKey = 'sk-add35bac795a45528576d6ae8ee2b5dc'; // WARNING: Exposing API key!
         const deepseekApiUrl = 'https://api.deepseek.com/chat/completions';
+        const numberOfSegments = 3; // Number of segments to generate for a longer piece
+        const contextLength = 4; // Number of items from previous segment to use as context
 
-        // Consolidated function to generate and play based on a prompt
+        // Main function to orchestrate segment generation and playback
         async function generateAndPlaySequence(userPrompt = null) {
-            // Determine which button to update based on whether a prompt was provided
             const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
             const button = document.getElementById(buttonId);
-            const feedbackDiv = document.getElementById('ai-feedback'); // Get feedback div
-            const originalButtonText = button.textContent; // Store original text
+            const feedbackDiv = document.getElementById('ai-feedback');
+            const originalButtonText = button.textContent;
             
             button.disabled = true;
-            button.textContent = 'Generating'; // Text without dots
-            button.classList.add('loading-indicator'); // Add loading class
+            button.classList.add('loading-indicator');
             feedbackDiv.textContent = ''; // Clear previous feedback
-
-            const availableNotes = Object.keys(noteFrequencies).join(', ');
-            let finalPrompt;
-            const baseDurationInfo = "Use a duration multiplier: 1 for a standard duration (like a quarter note), 2 for double (half note), 0.5 for half (eighth note), etc.";
-            const outputFormatInfo = `Output the result as a JSON array of sequence items. Each item must be one of the following formats: [\"NoteName\", duration_multiplier], [\"PAUSE\", duration_multiplier], or [[\"Note1\", \"Note2\"], duration_multiplier] for simultaneous notes.`;
-            const example = `Example: [[\"E4\", 1], [\"E4\", 1], [[\"F4\",\"A4\"], 1], [\"G4\", 1], [\"PAUSE\", 1], [[\"C4\",\"E4\"], 2]]`;
-
-            if (userPrompt) {
-                let instruction = `Generate a polyphonic (two-handed) melody sequence based on the request: \"${userPrompt}\".`;
-                if (userPrompt.toLowerCase().includes('c minor') || userPrompt.toLowerCase().includes('c-moll')) {
-                    instruction += ` For C minor, primarily use the notes C, D, Eb (D#), F, G, Ab (G#), Bb (A#).`;
-                }
-                instruction += ` Strictly adhere to any specified musical key or mode if possible.`;
-                instruction += ` Use only the available piano notes: ${availableNotes}.`;
-                instruction += ` ${outputFormatInfo}`; // Explain format
-                instruction += ` ${baseDurationInfo}`; 
-                instruction += ` ${example}`; // Show example
-                instruction += ` Pauses should be represented as [\"PAUSE\", duration_multiplier].`;
-                instruction += ` Do NOT include any other text, explanation, or markdown formatting.`;
-                finalPrompt = instruction;
-            } else {
-                finalPrompt = `Generate a simple, short, random polyphonic (two-handed) melody sequence using piano notes: ${availableNotes}. Include some pauses.`;
-                finalPrompt += ` ${outputFormatInfo}`; // Explain format
-                finalPrompt += ` ${baseDurationInfo}`; 
-                finalPrompt += ` ${example}`; // Show example
-                finalPrompt += ` Do NOT include any other text, explanation, or markdown formatting.`;
-            }
             
-            console.log("Sending prompt to AI:", finalPrompt);
+            let fullSequence = [];
+            let previousContext = []; // Store the last few items of the previous segment
+            let success = true;
 
+            for (let i = 1; i <= numberOfSegments; i++) {
+                button.textContent = `Generating segment ${i}/${numberOfSegments}`;
+                console.log(`--- Requesting Segment ${i} ---`);
+                try {
+                    const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1);
+                    if (segmentSequence && segmentSequence.length > 0) {
+                        fullSequence.push(...segmentSequence); // Add segment to the full sequence
+                        // Update context for the next iteration (last few items)
+                        previousContext = fullSequence.slice(-contextLength);
+                        console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
+                    } else {
+                        // Handle case where segment is empty/invalid
+                        feedbackDiv.textContent = `Failed to generate a valid segment ${i}. Stopping.`;
+                        console.warn(`Segment ${i} generation failed or returned empty.`);
+                        success = false;
+                        break; // Stop generating further segments
+                    }
+                } catch (error) {
+                    console.error(`Error fetching segment ${i}:`, error);
+                    feedbackDiv.textContent = `Error during segment ${i}: ${error.message}. Stopping.`;
+                    success = false;
+                    break; // Stop on error
+                }
+            }
+
+            // --- Play the full sequence if generation was successful --- 
+            if (success && fullSequence.length > 0) {
+                 const feedbackMessage = userPrompt 
+                    ? `Okay, playing generated piece based on: \"${userPrompt}\"`
+                    : "Okay, playing generated random piece.";
+                feedbackDiv.textContent = feedbackMessage;
+                await playSequence(fullSequence); // Play the combined sequence
+            } else if (success && fullSequence.length === 0) {
+                // If loop finished but sequence is still empty (shouldn't happen often with current logic)
+                feedbackDiv.textContent = "Sorry, couldn't generate any music this time.";
+            }
+            // If !success, feedback is already set in the loop
+
+            // --- Cleanup --- 
+            button.disabled = false;
+            button.textContent = originalButtonText;
+            button.classList.remove('loading-indicator');
+        }
+
+        // Function to fetch a single segment from the AI
+        async function fetchSegment(userPrompt, context, isContinuation) {
+            console.log(`Fetching segment. Continuation: ${isContinuation}. Context length: ${context.length}`);
+            const availableNotes = Object.keys(noteFrequencies).join(', ');
+            const baseDurationInfo = "Use a duration multiplier: 1 for standard (quarter), 2 for double (half), 0.5 for half (eighth), etc.";
+            const outputFormatInfo = `Output the result as a JSON array of sequence items. Each item must be [\"Note\", mult], [\"PAUSE\", mult], or [[\"N1\", \"N2\"], mult].`;
+            const example = `Example: [[\"E4\", 1], [[\"F4\",\"A4\"], 1], [\"PAUSE\", 1]]`;
+
+            // --- Construct the prompt --- 
+            let promptSegment;
+            if (isContinuation) {
+                // If it's a continuation, ask AI to continue based on the original prompt and the context
+                const contextString = JSON.stringify(context); // Provide context as string
+                promptSegment = `Continue the polyphonic musical piece based on the initial request: \"${userPrompt || 'play something random'}\". The previous segment ended with approximately: ${contextString}.`;
+                promptSegment += ` Generate the *next* musical segment (approx 4-8 measures).`;
+            } else {
+                // First segment prompt
+                const baseRequest = userPrompt 
+                                ? `Generate the *first* segment (approx 4-8 measures) of a polyphonic piece based on: \"${userPrompt}\".`
+                                : `Generate the *first* segment (approx 4-8 measures) of a simple, random polyphonic piece.`;
+                promptSegment = baseRequest;
+                 if (userPrompt && (userPrompt.toLowerCase().includes('c minor') || userPrompt.toLowerCase().includes('c-moll'))) {
+                    promptSegment += ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
+                }
+            }
+            promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]). Play simultaneous notes like [[\"N1\",\"N2\"], mult].`;
+            promptSegment += ` ${baseDurationInfo}`; 
+            promptSegment += ` ${outputFormatInfo}`; 
+            promptSegment += ` ${example}`; 
+            promptSegment += ` Output ONLY the JSON array for this segment. No other text or markdown.`;
+            
+            console.log("Segment Prompt:", promptSegment);
+
+            // --- Make the API call --- 
             try {
                 const response = await fetch(deepseekApiUrl, {
                     method: 'POST',
@@ -486,13 +539,14 @@
                         'Authorization': `Bearer ${deepseekApiKey}`
                     },
                     body: JSON.stringify({
-                        model: 'deepseek-chat', // Or another appropriate model
+                        model: 'deepseek-chat',
                         messages: [
-                            { role: 'system', content: 'You are a helpful assistant that generates musical note sequences.' },
-                            { role: 'user', content: finalPrompt }
+                            // Adjusted system message slightly
+                            { role: 'system', content: 'You are an AI music composer assistant. Generate musical segments as JSON according to instructions.' }, 
+                            { role: 'user', content: promptSegment }
                         ],
-                        max_tokens: 800, // Increased max_tokens significantly
-                        temperature: 0.7 // Adjust for creativity vs predictability
+                        max_tokens: 800, // Keep max_tokens per segment reasonable, maybe adjust later
+                        temperature: 0.75 // Slightly higher temp might help variety between segments
                     })
                 });
 
@@ -502,81 +556,45 @@
 
                 const data = await response.json();
                 
-                // Extract the note sequence from the response
-                // This might need adjustment depending on the exact structure of Deepseek's response
-                let noteSequence = [];
-                if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+                // --- Parse the response --- 
+                let segmentSequence = [];
+                 if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
                     let rawContent = data.choices[0].message.content.trim();
-                    console.log("Raw AI Response:", rawContent);
+                    console.log("Raw Segment Response:", rawContent);
+                    // Remove markdown
+                    if (rawContent.startsWith('```json')) rawContent = rawContent.substring(7).trim();
+                    else if (rawContent.startsWith('```')) rawContent = rawContent.substring(3).trim();
+                    if (rawContent.endsWith('```')) rawContent = rawContent.substring(0, rawContent.length - 3).trim();
 
-                    // Remove potential markdown fences
-                    if (rawContent.startsWith('```json')) {
-                        rawContent = rawContent.substring(7).trim(); // Remove ```json
-                    } else if (rawContent.startsWith('```')) {
-                         rawContent = rawContent.substring(3).trim(); // Remove ```
-                    }
-                    if (rawContent.endsWith('```')) {
-                        rawContent = rawContent.substring(0, rawContent.length - 3).trim(); // Remove trailing ```
-                    }
-
-                    // Improved JSON parsing: Find first '[' and last ']' brackets
+                    // Parse JSON
                     const startIndex = rawContent.indexOf('[');
                     const endIndex = rawContent.lastIndexOf(']');
-
                     if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
                         const jsonString = rawContent.substring(startIndex, endIndex + 1);
                         try {
-                            noteSequence = JSON.parse(jsonString);
-                            console.log("Successfully parsed JSON substring:", noteSequence);
+                            segmentSequence = JSON.parse(jsonString);
+                             // Basic validation of the parsed structure (array of arrays)
+                             if (!Array.isArray(segmentSequence) || !segmentSequence.every(item => Array.isArray(item))) {
+                                console.warn("Parsed sequence is not an array of arrays.", segmentSequence);
+                                segmentSequence = []; // Invalidate if structure is wrong
+                             }
                         } catch (parseError) {
-                            console.error("Failed to parse extracted JSON substring:", parseError, "Substring:", jsonString);
-                             alert("AI generated a melody, but its format was invalid. Check console.");
+                            console.error("Failed to parse segment JSON:", parseError, "String:", jsonString);
+                             segmentSequence = []; // Invalidate on parse error
                         }
                     } else {
-                         // Fallback or error if brackets not found
-                         console.warn("Could not find valid JSON array brackets in the AI response.");
-                         // Attempt to handle responses that omit brackets but might have content
-                         if (!rawContent.includes('[') && !rawContent.includes(']') && rawContent.includes('"')) {
-                             // Try wrapping with brackets if it looks like comma-separated strings
-                             try {
-                                 noteSequence = JSON.parse(`[${rawContent}]`);
-                                 console.log("Successfully parsed after wrapping with brackets:", noteSequence);
-                             } catch (wrapParseError) {
-                                 console.error("Failed to parse after wrapping with brackets:", wrapParseError);
-                                 alert("AI generated an invalid note sequence format. Check console.");
-                             }
-                         } else {
-                            alert("AI generated an invalid note sequence format. Check console.");
-                         }
+                        console.warn("Could not find valid JSON brackets in segment response.");
+                         segmentSequence = [];
                     }
                 } else {
-                    console.error("Unexpected response structure from Deepseek API:", data);
-                    alert("Failed to get a valid response from the AI.");
+                    console.error("Unexpected segment response structure:", data);
+                    segmentSequence = [];
                 }
-
-                if (Array.isArray(noteSequence) && noteSequence.length > 0) {
-                    console.log("Playing sequence:", noteSequence);
-                    // Display feedback message before playing
-                    const feedbackMessage = userPrompt 
-                        ? `Okay, I will try to play a melody based on: "${userPrompt}"`
-                        : "Okay, I will play a random melody.";
-                    feedbackDiv.textContent = feedbackMessage;
-
-                    await playSequence(noteSequence);
-                } else {
-                    console.warn("Received empty or invalid sequence from AI.");
-                    feedbackDiv.textContent = "Sorry, I couldn't generate a playable sequence this time."; // Feedback on failure
-                    // if (!alertShown) alert("AI did not generate a playable sequence."); // Avoid duplicate alerts
-                }
+                return segmentSequence; // Return the parsed (possibly empty) sequence
 
             } catch (error) {
-                console.error('Error generating or playing AI sequence:', error);
-                feedbackDiv.textContent = `An error occurred: ${error.message}`; // Feedback on error
-                // alert(`Error: ${error.message}`);
-            } finally {
-                button.disabled = false;
-                button.textContent = originalButtonText; // Restore original text
-                button.classList.remove('loading-indicator'); // Remove loading class
+                console.error('Error in fetchSegment API call:', error);
+                throw error; // Re-throw the error to be caught by the main loop
             }
         }
 

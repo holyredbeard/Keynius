@@ -210,7 +210,6 @@
 
     <!-- AI Interaction Section -->
     <div class="mt-8 max-w-xl w-full space-y-4">
-        <h3 class="text-lg font-semibold text-gray-700 text-center">AI Composer</h3>
         <div id="ai-feedback" class="mb-2 text-gray-600 italic text-center min-h-[1.5em]"></div>
         
         <div>
@@ -654,11 +653,15 @@
             }
         });
 
-        // Clear chat input on page load
+        // Clear chat input and feedback on page load
         document.addEventListener('DOMContentLoaded', (event) => {
             const chatInput = document.getElementById('ai-chat-input');
             if (chatInput) {
                 chatInput.value = '';
+            }
+            const feedbackDiv = document.getElementById('ai-feedback');
+            if (feedbackDiv) {
+                feedbackDiv.textContent = ''; // Clear feedback too
             }
         });
 

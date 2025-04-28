@@ -442,6 +442,18 @@
         const numberOfSegments = 3; // Number of segments to generate for a longer piece
         const contextLength = 4; // Number of items from previous segment to use as context
 
+        const loadingTips = [
+            "Play yourself while you wait...",
+            "Did you know? The lowest note is C3.",
+            "Try asking for a specific mood or key!",
+            "The AI is composing, just a moment...",
+            "Remember, you can play with keys ZXC... and QWE...",
+            "What masterpiece will Keynius create now?",
+            "Tip: Ask for polyphony using 'two hands' or 'chords'.",
+            "Warming up the circuits...",
+            "Thinking musically..."
+        ];
+
         // Main function to orchestrate segment generation and playback
         async function generateAndPlaySequence(userPrompt = null) {
             const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
@@ -451,7 +463,9 @@
             
             button.disabled = true;
             button.classList.add('loading-indicator');
-            feedbackDiv.textContent = ''; // Clear previous feedback
+            // Display a random tip while loading
+            const randomTip = loadingTips[Math.floor(Math.random() * loadingTips.length)];
+            feedbackDiv.textContent = randomTip; 
             
             let fullSequence = [];
             let previousContext = []; // Store the last few items of the previous segment

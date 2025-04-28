@@ -460,9 +460,10 @@
                     const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1);
                     if (segmentSequence && segmentSequence.length > 0) {
                         fullSequence.push(...segmentSequence); // Add segment to the full sequence
-                        // Update context for the next iteration (last few items)
-                        previousContext = fullSequence.slice(-contextLength);
                         console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
+                        // --- **CORRECTED CONTEXT UPDATE PLACEMENT** ---
+                        // Update context *after* adding the segment and *before* the next iteration might need it
+                        previousContext = fullSequence.slice(-contextLength);
                     } else {
                         // Handle case where segment is empty/invalid
                         feedbackDiv.textContent = `Failed to generate a valid segment ${i}. Stopping.`;

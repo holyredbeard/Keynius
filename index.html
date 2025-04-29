@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Piano</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script> 
     <!-- Link to the external CSS file -->
     <link rel="stylesheet" href="style.css">
     <style>
@@ -221,128 +223,196 @@
         </div>
     </div>
 
-    <script>
-        // Audio context setup
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Function to play a note (velocity removed)
-        function playNote(frequency, duration = 0.7) { 
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.type = 'triangle'; 
-            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-            
-            // Simple ADSR-like envelope simulation (reverted)
-            const now = audioContext.currentTime;
-            const attackTime = 0.01;  
-            const decayTime = 0.1;   
-            const sustainLevel = 0.3; // Fixed sustain level
-            const peakVolume = 0.6;   // Fixed peak volume
+    <!-- AI Settings Dropdowns -->
+    <div class="mt-4 md:mt-6 max-w-xl w-full bg-white p-4 rounded-lg shadow-md">
+        <div id="ai-settings" class="pt-2">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label for="ai-style-select" class="block text-sm font-medium text-gray-700 mb-1">Style</label>
+                    <select id="ai-style-select" name="ai_style" class="w-full border border-gray-300 p-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        <option value="" selected>(Any)</option>
+                        <option value="Jazz">Jazz</option>
+                        <option value="Classical">Classical</option>
+                        <option value="Blues">Blues</option>
+                        <option value="Pop">Pop</option>
+                    </select>
+                </div>
 
-            gainNode.gain.setValueAtTime(0, now); 
-            gainNode.gain.linearRampToValueAtTime(peakVolume, now + attackTime); 
-            gainNode.gain.exponentialRampToValueAtTime(sustainLevel, now + attackTime + decayTime); 
-            
-            const releaseStartTime = now + duration * 0.8; 
-            if (releaseStartTime > now + attackTime + decayTime) { 
-                 gainNode.gain.setValueAtTime(sustainLevel, releaseStartTime);
-                 gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration); 
-            } else {
-                 gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration); 
-            }
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.start(now);
-            oscillator.stop(now + duration);
-        }
+                 <div>
+                    <label for="ai-key-select" class="block text-sm font-medium text-gray-700 mb-1">Key</label>
+                    <select id="ai-key-select" name="ai_key" class="w-full border border-gray-300 p-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        <option value="" selected>(Any)</option>
+                        <option value="C">C</option>
+                        <option value="C#">C#</option>
+                        <option value="D">D</option>
+                        <option value="D#">D#</option>
+                        <option value="E">E</option>
+                        <option value="F">F</option>
+                        <option value="F#">F#</option>
+                        <option value="G">G</option>
+                        <option value="G#">G#</option>
+                        <option value="A">A</option>
+                        <option value="A#">A#</option>
+                        <option value="B">B</option>
+                    </select>
+                </div>
+
+                 <div>
+                    <label for="ai-mode-select" class="block text-sm font-medium text-gray-700 mb-1">Mode</label>
+                    <select id="ai-mode-select" name="ai_mode" class="w-full border border-gray-300 p-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        <option value="" selected>(Any)</option>
+                        <option value="Major">Major</option>
+                        <option value="Minor">Minor</option>
+                    </select>
+                </div>
+                
+                <!-- NEW: Instrument Select Dropdown -->
+                <div>
+                    <label for="instrument-select" class="block text-sm font-medium text-gray-700 mb-1">Instrument</label>
+                    <select id="instrument-select" name="instrument" class="w-full border border-gray-300 p-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        <option value="piano" selected>Piano (Default)</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="sine">Sine</option>
+                        <option value="square">Square</option>
+                        <option value="sawtooth">Sawtooth</option>
+                        <option value="pluck">Pluck</option>
+                        <option value="am_synth">AM Synth</option>
+                        <option value="fm_synth">FM Synth</option>
+                        <option value="fat_square">Fat Square</option>
+                        <option value="metal_synth">Metal Synth</option>
+                    </select>
+                </div>
+                
+                <!-- Help Icon -->
+                <div class="flex items-end pb-1">
+                    <button id="help-button" class="text-blue-500 hover:text-blue-700 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4 0 .863-.37 1.64-.945 2.175-.575.535-1.296.94-2.055 1.245l-.71.297c-.513.214-.987.487-1.43.793a9.006 9.006 0 00-.997 1.066c-.22.274-.43.574-.616.897-.187.322-.25.68-.25 1.046 0 .414.162.788.434 1.06.272.272.646.435 1.06.435.414 0 .788-.163 1.06-.435.272-.272.435-.646.435-1.06 0-.366.063-.724.187-1.046.164-.44.428-.828.75-1.14.322-.312.7-.586 1.117-.793l.71-.297c.76-.305 1.48-.71 2.056-1.245C19.63 14.64 20 13.863 20 13c0-2.21-1.79-4-4-4-1.742 0-3.223.835-3.772 2zM12 20a1 1 0 100-2 1 1 0 000 2z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio context setup - REMOVED
+        // const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Note frequencies (A4 = 440Hz)
+        // Function to play a note (velocity removed) - REMOVED
+        /*
+        function playNote(frequency, duration = 0.7) { 
+            // ... old code ...
+        }
+        */
+        
+        // Note frequencies (A4 = 440Hz) - REMOVED
+        /*
         const noteFrequencies = {
-            // Octave 3
-            'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56,
-            'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00,
-            'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
-            // Octave 4
-            'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
-            'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
-            'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
-            // Octave 5
-            'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25,
-            'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
-            'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77,
-            // Octave 6
-            'C6': 1046.50, 'C#6': 1108.73, 'D6': 1174.66, 'D#6': 1244.51,
-            'E6': 1318.51, 'F6': 1396.91, 'F#6': 1479.98, 'G6': 1567.98,
-            'G#6': 1661.22, 'A6': 1760.00, 'A#6': 1864.66, 'B6': 1975.53
+            // ... old frequencies ...
         };
+        */
+        
+        // Keep track of manually pressed notes to handle keyup/mouseup correctly
+        let activeManualNotes = {};
         
         // Set up mouse events for piano keys
         document.querySelectorAll('.white-key, .black-key').forEach(key => {
             const note = key.getAttribute('data-note');
-            const keyboardKey = key.getAttribute('data-key');
             
             // Mouse down
-            key.addEventListener('mousedown', () => {
+            key.addEventListener('mousedown', async () => { 
+                await ensureAudioReady(); 
+                if (!synth || activeManualNotes[note]) return; 
+                console.log(`[Manual] Attacking note: ${note} (mousedown)`); // LOG
                 key.classList.add('active');
-                playNote(noteFrequencies[note]);
+                synth.triggerAttack(note); 
+                activeManualNotes[note] = true;
             });
             
             // Mouse up
             key.addEventListener('mouseup', () => {
+                if (!synth || !activeManualNotes[note]) return;
+                console.log(`[Manual] Releasing note: ${note} (mouseup)`); // LOG
                 key.classList.remove('active');
+                synth.triggerRelease(note); 
+                delete activeManualNotes[note]; 
             });
             
             // Mouse leave while pressed
             key.addEventListener('mouseleave', () => {
                 if (key.classList.contains('active')) {
+                     if (!synth || !activeManualNotes[note]) return;
+                    console.log(`[Manual] Releasing note: ${note} (mouseleave)`); // LOG
                     key.classList.remove('active');
+                    synth.triggerRelease(note); 
+                    delete activeManualNotes[note]; 
                 }
             });
         });
         
         // Set up keyboard events
-        document.addEventListener('keydown', (e) => {
-            // Prevent piano playing when chat input is focused
-            if (document.activeElement === document.getElementById('ai-chat-input')) {
-                return;
+        document.addEventListener('keydown', async (e) => { 
+            if (document.activeElement === document.getElementById('ai-chat-input') || e.repeat) {
+                return; // Ignore if input focused or key repeating
             }
 
             const key = e.key.toLowerCase();
             const pianoKey = document.querySelector(`[data-key="${key}"]`);
             
             if (pianoKey && !pianoKey.classList.contains('active')) {
-                pianoKey.classList.add('active');
                 const note = pianoKey.getAttribute('data-note');
-                playNote(noteFrequencies[note]);
+                if (activeManualNotes[note]) return; // Already active
+                
+                await ensureAudioReady(); 
+                if (!synth) return; 
+                console.log(`[Manual] Attacking note: ${note} (keydown: ${key})`); // LOG
+                pianoKey.classList.add('active');
+                synth.triggerAttack(note); 
+                activeManualNotes[note] = true;
             }
         });
         
         document.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();
-            const pianoKey = document.querySelector(`[data-key="${key}"]`);
+            const escapedKey = key.replace(/"/g, '\\"'); 
+            const pianoKey = document.querySelector(`[data-key="${escapedKey}"]`);
             
             if (pianoKey) {
+                const note = pianoKey.getAttribute('data-note');
+                if (!synth || !activeManualNotes[note]) return;
+                console.log(`[Manual] Releasing note: ${note} (keyup: ${key})`); // LOG
                 pianoKey.classList.remove('active');
+                synth.triggerRelease(note); 
+                 delete activeManualNotes[note]; 
             }
         });
         
-        // Handle mobile touch events
+        // Handle mobile touch events (slightly different logic needed for multi-touch)
+        // Basic implementation: treat each touchstart/touchend individually
         document.querySelectorAll('.white-key, .black-key').forEach(key => {
             const note = key.getAttribute('data-note');
             
-            key.addEventListener('touchstart', (e) => {
-                e.preventDefault();
+            key.addEventListener('touchstart', async (e) => { 
+                e.preventDefault(); 
+                if (activeManualNotes[note]) return; 
+                
+                await ensureAudioReady(); 
+                if (!synth) return; 
+                 console.log(`[Manual] Attacking note: ${note} (touchstart)`); // LOG
                 key.classList.add('active');
-                playNote(noteFrequencies[note]);
-            });
+                synth.triggerAttack(note); 
+                activeManualNotes[note] = true;
+            }, { passive: false }); 
             
             key.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                if (!synth || !activeManualNotes[note]) return;
+                 console.log(`[Manual] Releasing note: ${note} (touchend)`); // LOG
                 key.classList.remove('active');
-            });
+                synth.triggerRelease(note); 
+                 delete activeManualNotes[note]; 
+            }, { passive: false });
         });
 
         // Helper function for delays
@@ -350,82 +420,13 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // Function to play polyphonic OR monophonic sequences (velocity removed)
+        // Function to play polyphonic OR monophonic sequences (OLD - using AudioContext)
+        /* // Keep the new playSequence using Tone.js, remove this older one if it exists
         async function playSequence(sequence) {
-            const baseDurationMs = 400; 
-            console.log("Starting sequence playback (mono/poly, no velocity)...");
-
-            for (const item of sequence) {
-                // Basic validation
-                if (!Array.isArray(item) || item.length !== 2) {
-                    console.warn("Skipping invalid item structure:", item);
-                    continue;
-                }
-                
-                const [eventData, multiplier] = item;
-
-                // Validate multiplier
-                if (typeof multiplier !== 'number' || multiplier <= 0) {
-                    console.warn("Skipping item with invalid multiplier:", item);
-                    continue;
-                }
-                const currentDurationMs = baseDurationMs * multiplier;
-
-                let notesToPlay = []; 
-                let isPause = false;
-
-                // Determine format and extract data (reverted)
-                if (Array.isArray(eventData)) { // Poly note: [["N1", "N2"], mult]
-                    if (eventData.length === 2 && typeof eventData[0] === 'string' && typeof eventData[1] === 'string') {
-                        notesToPlay = eventData;
-                    } else {
-                        console.warn("Skipping invalid chord format:", item);
-                        continue;
-                    }
-                } else if (typeof eventData === 'string') { // Mono note or pause: ["Note" or "PAUSE", mult]
-                    if (eventData === "PAUSE") {
-                        isPause = true;
-                    } else {
-                        notesToPlay = [eventData]; // Single note
-                    }
-                } else {
-                    console.warn("Skipping unrecognized item structure:", item);
-                    continue;
-                }
-
-                // --- Execute the step --- 
-                if (isPause) {
-                    console.log(`PAUSE for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
-                    await sleep(currentDurationMs);
-                } else if (notesToPlay.length > 0) {
-                    const notesString = notesToPlay.join(', ');
-                    console.log(`Playing notes: ${notesString} for ${currentDurationMs}ms (Multiplier: ${multiplier})`);
-                    const activeKeys = [];
-                    
-                    for (const note of notesToPlay) {
-                        const pianoKey = document.querySelector(`[data-note="${note}"]`);
-                        if (pianoKey && noteFrequencies[note]) {
-                            pianoKey.classList.add('active');
-                            activeKeys.push(pianoKey); 
-                            // Call playNote without velocity
-                            playNote(noteFrequencies[note], currentDurationMs / 1000); 
-                        } else {
-                            console.warn(`Note ${note} not found or invalid.`);
-                        }
-                    }
-                    
-                    await sleep(currentDurationMs);
-                    
-                    for (const key of activeKeys) {
-                        key.classList.remove('active');
-                    }
-                } else { 
-                     console.log(`Implicit pause/skipped notes for ${currentDurationMs}ms`);
-                     await sleep(currentDurationMs); 
-                }
-            } 
-            console.log("Sequence finished.");
+            // ... old playSequence implementation ...
         }
+        */
+
 
         // --- AI Music Generation ---
         const deepseekApiKey = 'sk-add35bac795a45528576d6ae8ee2b5dc'; // WARNING: Exposing API key!
@@ -457,107 +458,161 @@
 
         // Main function to orchestrate segment generation and playback
         async function generateAndPlaySequence(userPrompt = null) {
+            // Determine which button was clicked (instruct or random)
             const buttonId = userPrompt ? 'ai-instruct-button' : 'ai-random-play-button';
             const button = document.getElementById(buttonId);
             const feedbackDiv = document.getElementById('ai-feedback');
             const replayButton = document.getElementById('replay-button'); 
-            // --- Ensure we get the span element inside the button --- 
             const originalButtonTextElement = button.querySelector('span'); 
-            const originalButtonText = originalButtonTextElement ? originalButtonTextElement.textContent : button.textContent; // Fallback
+            const originalButtonText = originalButtonTextElement ? originalButtonTextElement.textContent : button.textContent;
             
             if(replayButton) replayButton.classList.add('hidden'); 
 
             button.disabled = true;
-            // --- Add loading indicator class --- 
             button.classList.add('loading-indicator');
-            
             const randomTip = loadingTips[Math.floor(Math.random() * loadingTips.length)];
             feedbackDiv.textContent = randomTip; 
-            
-            // --- Reset progress at start --- 
             updateButtonProgress(button, 0); 
 
             let fullSequence = [];
-            let previousContext = [];
-            let success = true;
+            let success = false; // Assume failure initially
+            let triedFetchingEntireSong = false;
 
-            // --- Generate Segments --- 
-            for (let i = 1; i <= numberOfSegments; i++) {
-                // --- Update button text within span --- 
-                if (originalButtonTextElement) {
-                    originalButtonTextElement.textContent = `Generating segment ${i}/${numberOfSegments}`;
-                } else {
-                    button.textContent = `Generating segment ${i}/${numberOfSegments}`; // Fallback
+            // --- Check if prompt likely asks for a specific song (e.g., contains quotes) ---
+            let isLikelySpecificRequest = false;
+            if (userPrompt) {
+                // Simple heuristic: check for double or single quotes
+                if (userPrompt.includes('"') || userPrompt.includes('\'')) {
+                    isLikelySpecificRequest = true;
                 }
-                
-                console.log(`--- Requesting Segment ${i} ---`);
+                // Could add more checks here later (e.g., keywords like "by", "av", title capitalization)
+            }
+
+            // --- Attempt to Fetch Entire Song FIRST if it looks like a specific request --- 
+            if (isLikelySpecificRequest) {
+                console.log(`Prompt looks like a specific song request. Attempting to fetch entire sequence...`);
+                feedbackDiv.textContent = `Trying to generate the requested piece in one go...`;
+                triedFetchingEntireSong = true;
                 try {
-                    const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1); 
-                    if (segmentSequence && segmentSequence.length > 0) {
-                        fullSequence.push(...segmentSequence); 
-                        console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
-                        previousContext = fullSequence.slice(-contextLength); 
-                        // --- Update progress bar --- 
-                        updateButtonProgress(button, i / numberOfSegments);
+                    fullSequence = await fetchSegment(userPrompt, [], false, true); // fetchEntireSong = true
+                    if (fullSequence && fullSequence.length > 5) { // Basic validation
+                        console.log(`Successfully fetched potential full sequence, length: ${fullSequence.length}`);
+                        success = true;
+                        updateButtonProgress(button, 1); 
                     } else {
-                        feedbackDiv.textContent = `Failed to generate a valid segment ${i}. Stopping.`;
-                        console.warn(`Segment ${i} generation failed or returned empty.`);
+                        console.warn(`Failed to fetch or parse a valid entire sequence (length: ${fullSequence?.length}). Falling back to segments.`);
+                        feedbackDiv.textContent = `Could not generate the piece in one go. Trying step-by-step...`;
+                        fullSequence = []; // Ensure sequence is empty for fallback
+                        success = false; // Ensure we proceed to segmented generation
+                    }
+                } catch (error) {
+                    console.error(`Error fetching entire song attempt:`, error);
+                    feedbackDiv.textContent = `Error during initial generation. Trying step-by-step...`;
+                    fullSequence = []; 
+                    success = false; 
+                }
+            }
+
+            // --- Segmented Generation (if not a specific request OR if fetching entire song failed) --- 
+            if (!success) { 
+                console.log("Proceeding with segmented generation.");
+                let previousContext = [];
+                success = true; // Assume success for the loop unless an error occurs
+                for (let i = 1; i <= numberOfSegments; i++) {
+                    // Update button text 
+                    if (originalButtonTextElement) {
+                        originalButtonTextElement.textContent = `Generating segment ${i}/${numberOfSegments}`;
+                    } else {
+                        button.textContent = `Generating segment ${i}/${numberOfSegments}`; 
+                    }
+                    
+                    console.log(`--- Requesting Segment ${i} ---`);
+                    try {
+                        // Fetch segment (fetchEntireSong is false by default)
+                        const segmentSequence = await fetchSegment(userPrompt, previousContext, i > 1);
+                        if (segmentSequence && segmentSequence.length > 0) {
+                            fullSequence.push(...segmentSequence); 
+                            console.log(`Segment ${i} received, length: ${segmentSequence.length}. Total length: ${fullSequence.length}`);
+                            previousContext = fullSequence.slice(-contextLength); 
+                            updateButtonProgress(button, i / numberOfSegments);
+                        } else {
+                            const failureMsg = triedFetchingEntireSong ? `Failed to generate segment ${i} after failing to get the whole song.` : `Failed to generate a valid segment ${i}. Stopping.`;
+                            feedbackDiv.textContent = failureMsg;
+                            console.warn(`Segment ${i} generation failed or returned empty.`);
+                            success = false;
+                            break; 
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching segment ${i}:`, error);
+                        feedbackDiv.textContent = `Error during segment ${i}: ${error.message}. Stopping.`;
                         success = false;
                         break; 
                     }
-                } catch (error) {
-                    console.error(`Error fetching segment ${i}:`, error);
-                    feedbackDiv.textContent = `Error during segment ${i}: ${error.message}. Stopping.`;
-                    success = false;
-                    break; 
-                }
-            } // End of loop
+                } // End of loop
+            }
 
             // --- Play the full sequence if generation was successful --- 
             if (success && fullSequence.length > 0) {
                 lastGeneratedSequence = [...fullSequence];
                 if(replayButton) replayButton.classList.remove('hidden');
 
-                 let feedbackMessage = "Okay, playing generated piece";
+                let feedbackMessage = "Okay, playing generated piece";
                  if (userPrompt) {
                     feedbackMessage = `Okay, playing AI-generated piece based on: \"${userPrompt}\"`; 
                  } else {
                     feedbackMessage = "Okay, playing generated random piece.";
                  }
+                 if (triedFetchingEntireSong && success) {
+                     feedbackMessage = `Okay, playing the AI's interpretation of the requested piece.`;
+                 }
                 feedbackDiv.textContent = feedbackMessage;
                 
+                // --- ADD LOGGING BEFORE PLAYBACK ---
+                console.log("--- Data passed to playSequence: ---");
+                console.log(JSON.stringify(fullSequence, null, 2)); // Pretty print the array
+                console.log("-------------------------------------");
+                // -------------------------------------
+                
+                // Disable buttons during playback
+                const otherButtonId = buttonId === 'ai-instruct-button' ? 'ai-random-play-button' : 'ai-instruct-button';
+                const otherButton = document.getElementById(otherButtonId);
                 button.disabled = true;
+                if(otherButton) otherButton.disabled = true;
                 if(replayButton) replayButton.disabled = true;
                 
                 await playSequence(fullSequence); 
 
+                // Re-enable buttons after playback
                 button.disabled = false; 
+                if(otherButton) otherButton.disabled = false;
                 if(replayButton) replayButton.disabled = false;
 
             } else if (success && fullSequence.length === 0) {
+                // This case might happen if segments were generated but all were empty/invalid
                 feedbackDiv.textContent = "Sorry, couldn't generate any music this time.";
+            } else if (!success) {
+                // Feedback messages should already be set from the error handling above
+                console.log("Generation failed, not playing.");
             }
 
             // --- Cleanup --- 
             button.disabled = false;
-            // --- Restore button text in span --- 
             if (originalButtonTextElement) {
                 originalButtonTextElement.textContent = originalButtonText;
             } else {
-                button.textContent = originalButtonText; // Fallback
+                button.textContent = originalButtonText; 
             }
-            // --- Remove loading indicator class and reset progress --- 
             button.classList.remove('loading-indicator');
             updateButtonProgress(button, 0); 
         }
 
-        // Function to fetch a single segment from the AI
-        async function fetchSegment(userPrompt, context, isContinuation) {
-            console.log(`Fetching segment. Continuation: ${isContinuation}. Context length: ${context.length}`);
+        // Function to fetch a single segment OR the entire song from the AI
+        async function fetchSegment(userPrompt, context, isContinuation, fetchEntireSong = false) {
+            console.log(`Fetching. Entire song: ${fetchEntireSong}, Continuation: ${isContinuation}, Context length: ${context.length}`);
             const availableNotes = Object.keys(noteFrequencies).join(', ');
             const baseDurationInfo = "Use a duration multiplier: 1 for standard (quarter), 2 for double (half), 0.5 for half (eighth), etc.";
 
-            // --- Determine if polyphony is requested --- 
+            // Determine if polyphony is requested (relevant even for whole song)
             let wantsPolyphony = false;
             if (userPrompt) {
                 const polyKeywords = ['polyphonic', 'two hands', 'harmony', 'chord', 'tvåstämmig', 'ackord', 'två händer'];
@@ -565,54 +620,60 @@
             }
             console.log("Polyphony requested:", wantsPolyphony);
 
-            // --- Define output formats and examples based on polyphony (velocity removed) --- 
+            // Define output formats and examples based on polyphony
             let outputFormatInfo, example, systemMessage;
             if (wantsPolyphony) {
                 outputFormatInfo = `Output as JSON array. Items: [ ["Note1", "Note2"], duration_multiplier ] for chords, ["Note", mult], or ["PAUSE", mult].`;
-                example = `Example: [[ ["C4", "E4"] ], 1], ["G4", 1], ["PAUSE", 0.5]]`; // Poly example without velocity
-                systemMessage = 'You are an AI music composer generating polyphonic segments.';
+                example = `Example: [[ ["C4", "E4"] ], 1], ["G4", 1], ["PAUSE", 0.5]]`;
+                systemMessage = 'You are an AI music composer generating polyphonic piano pieces.';
             } else {
                 outputFormatInfo = `Output as JSON array. Items: ["NoteName", duration_multiplier] or ["PAUSE", duration_multiplier].`;
-                example = `Example: [[\"E4\", 1], [\"F4\", 1], [\"PAUSE\", 1], [\"G4\", 2]]`; // Mono example (no velocity)
-                systemMessage = 'You are an AI music composer generating monophonic segments.';
+                example = `Example: [[\"E4\", 1], [\"F4\", 1], [\"PAUSE\", 1], [\"G4\", 2]]`;
+                systemMessage = 'You are an AI music composer generating monophonic piano melodies.';
             }
 
-            // --- Construct the prompt (velocity removed) --- 
+            // Construct the prompt
             let promptSegment;
             const segmentLength = "(approx 4-8 measures)";
             const musicType = wantsPolyphony ? "polyphonic (two-handed)" : "monophonic (single voice)";
+            let maxTokensToRequest = 800; // Default for segments
 
-            if (isContinuation) {
+            if (fetchEntireSong) {
+                // Prompt for the entire song
+                promptSegment = `Generate the *complete* JSON note sequence for the song based on the request: \"${userPrompt}\". `; 
+                promptSegment += `Generate it as a ${musicType} piece.`;
+                maxTokensToRequest = 2000; // Increase max tokens for potentially longer sequences
+            } else if (isContinuation) {
+                // Prompt to continue a segment
                 const contextString = JSON.stringify(context); 
-                
                 promptSegment = `Continue generating the musical piece.`;
                 promptSegment += ` The previous segment ended with approximately: ${contextString}.`;
-                promptSegment += ` Generate ONLY the *next* ${segmentLength} JSON array segment, continuing the melody accurately or in style.`; // Adjusted wording
+                promptSegment += ` Generate ONLY the *next* ${segmentLength} JSON array segment, continuing the melody accurately or in style.`;
             } else {
+                // Prompt for the first segment
                 const baseRequest = userPrompt 
                                 ? `Generate the *first* ${segmentLength} segment of a ${musicType} piece based on: \"${userPrompt}\".`
                                 : `Generate the *first* ${segmentLength} segment of a simple, random ${musicType} piece.`;
                 promptSegment = baseRequest;
-                 // Add key instructions if specified
+                 // Add key instructions if specified (Only for the first segment)
                  const lowerUserPrompt = userPrompt ? userPrompt.toLowerCase() : '';
                  let keyInstruction = '';
                  const minorFeelInstruction = " Try to create a melody with a melancholic or dramatic character typical for minor keys. Emphasizing the root, minor third, and fifth notes can help establish this feeling.";
-                  // Specific keys first
                   if (lowerUserPrompt.includes('c minor') || lowerUserPrompt.includes('c-moll')) {
                      keyInstruction = ` For C minor, primarily use C, D, Eb(D#), F, G, Ab(G#), Bb(A#).`;
                      keyInstruction += minorFeelInstruction.replace('root', 'C').replace('minor third', 'Eb').replace('fifth', 'G');
                   } else if (lowerUserPrompt.includes('d minor') || lowerUserPrompt.includes('d moll')) {
                      keyInstruction = ` For D minor, primarily use D, E, F, G, A, Bb(A#), C.`;
                      keyInstruction += minorFeelInstruction.replace('root', 'D').replace('minor third', 'F').replace('fifth', 'A');
-                  } // Add more specific minor keys here if needed...
-                  
-                  // Generic minor if no specific key matched
+                  } 
                   else if (!keyInstruction && (lowerUserPrompt.includes('minor') || lowerUserPrompt.includes('moll'))) {
                       keyInstruction = ` For a generic minor key feel, primarily use the notes A, B, C, D, E, F, G (like A minor).`;
                       keyInstruction += minorFeelInstruction.replace('root', 'A').replace('minor third', 'C').replace('fifth', 'E');
                    }
-                  promptSegment += keyInstruction; // Add the instruction if any
+                  promptSegment += keyInstruction; 
             }
+
+            // Common instructions for all prompt types
             promptSegment += ` Use only available notes: ${availableNotes}. Include pauses ([\"PAUSE\", mult]).`;
             if (wantsPolyphony) {
                  promptSegment += ` For simultaneous notes, use format [[\"N1\", \"N2\"], mult]. Single notes: [\"Note\", mult].`;
@@ -623,11 +684,11 @@
             promptSegment += ` ${outputFormatInfo}`; 
             promptSegment += ` ${example}`; 
             promptSegment += ` Ensure all brackets [ ] are correctly opened and closed.`;
-            promptSegment += ` Output ONLY the JSON array for this segment. No other text or markdown.`;
+            promptSegment += ` Output ONLY the JSON array. No other text or markdown.`;
             
-            console.log("Segment Prompt:", promptSegment);
+            console.log("Final Prompt:", promptSegment);
 
-            // --- Make the API call --- 
+            // Make the API call
             try {
                 const response = await fetch(deepseekApiUrl, {
                     method: 'POST',
@@ -641,22 +702,24 @@
                             { role: 'system', content: systemMessage }, 
                             { role: 'user', content: promptSegment }
                         ],
-                        max_tokens: 800, 
+                        max_tokens: maxTokensToRequest, // Use adjusted token limit
                         temperature: 0.75 
                     })
                 });
 
                 if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error("Deepseek API Error Response Body:", errorBody);
                     throw new Error(`Deepseek API error: ${response.status} ${response.statusText}`);
                 }
 
                 const data = await response.json();
                 
-                // --- Parse the response --- 
-                let segmentSequence = [];
+                // Parse the response
+                let sequence = [];
                  if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
                     let rawContent = data.choices[0].message.content.trim();
-                    console.log("Raw Segment Response:", rawContent);
+                    console.log("Raw Response Content:", rawContent);
                     // Remove markdown
                     if (rawContent.startsWith('```json')) rawContent = rawContent.substring(7).trim();
                     else if (rawContent.startsWith('```')) rawContent = rawContent.substring(3).trim();
@@ -668,28 +731,27 @@
                     if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
                         const jsonString = rawContent.substring(startIndex, endIndex + 1);
                         try {
-                            segmentSequence = JSON.parse(jsonString);
-                             // **Basic validation - check if it's an array**
-                             if (!Array.isArray(segmentSequence)) {
-                                console.warn("Parsed sequence is not an array.", segmentSequence);
-                                segmentSequence = []; // Invalidate if structure is wrong
-                             } // Further validation happens in playSequence
+                            sequence = JSON.parse(jsonString);
+                             if (!Array.isArray(sequence)) {
+                                console.warn("Parsed sequence is not an array.", sequence);
+                                sequence = []; 
+                             } 
                         } catch (parseError) {
-                            console.error("Failed to parse segment JSON:", parseError, "String:", jsonString);
-                             segmentSequence = []; // Invalidate on parse error
+                            console.error("Failed to parse JSON:", parseError, "String:", jsonString);
+                             sequence = []; 
                         }
                     } else {
-                        console.warn("Could not find valid JSON brackets in segment response.");
-                         segmentSequence = [];
+                        console.warn("Could not find valid JSON brackets in response.");
+                         sequence = [];
                     }
                 } else {
-                    console.error("Unexpected segment response structure:", data);
-                    segmentSequence = [];
+                    console.error("Unexpected response structure:", data);
+                    sequence = [];
                 }
-                return segmentSequence; 
+                return sequence; 
 
             } catch (error) {
-                console.error('Error in fetchSegment API call:', error);
+                console.error('Error in fetchSegment/Song API call:', error);
                 throw error; 
             }
         }
@@ -767,6 +829,299 @@
             }
         });
 
+        // --- Help Modal Logic --- 
+        const helpButton = document.getElementById('help-button');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpModalButton = document.getElementById('close-help-modal');
+
+        if (helpButton && helpModal && closeHelpModalButton) {
+            // Show modal on help button click
+            helpButton.addEventListener('click', () => {
+                helpModal.classList.remove('hidden');
+            });
+
+            // Hide modal on close button click
+            closeHelpModalButton.addEventListener('click', () => {
+                helpModal.classList.add('hidden');
+            });
+
+            // Hide modal on click outside the modal content
+            helpModal.addEventListener('click', (event) => {
+                // Check if the click is directly on the modal background (event.target)
+                // and not on its children (modal content area)
+                if (event.target === helpModal) { 
+                    helpModal.classList.add('hidden');
+                }
+            });
+        }
+
+        // --- Tone.js Setup ---
+        let synth = null; // Initialize later after user interaction
+
+        // --- Synth Creation Logic ---
+        function createSynth(instrumentType = 'piano') {
+            console.log(`Creating synth: ${instrumentType}`);
+            // Define synth options based on type
+            let synthOptions = {};
+            let baseSynthType = Tone.Synth; // Default base synth
+
+            switch (instrumentType) {
+                case 'triangle':
+                    synthOptions = { oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 } };
+                    break;
+                case 'sine':
+                    synthOptions = { oscillator: { type: 'sine' }, envelope: { attack: 0.05, decay: 0.1, sustain: 0.4, release: 1.2 } };
+                    break;
+                case 'square':
+                    synthOptions = { oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.8 } };
+                    break;
+                case 'sawtooth':
+                    synthOptions = { oscillator: { type: 'sawtooth' }, envelope: { attack: 0.03, decay: 0.15, sustain: 0.3, release: 1 } };
+                    break;
+                case 'pluck':
+                    synthOptions = { oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 0.3 } };
+                    break;
+                case 'am_synth':
+                    baseSynthType = Tone.AMSynth;
+                    synthOptions = { harmonicity: 1.5, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 } };
+                    break;
+                case 'fm_synth':
+                    baseSynthType = Tone.FMSynth;
+                    synthOptions = { harmonicity: 3, modulationIndex: 10, envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 1 } };
+                    break;
+                case 'fat_square': // Using Pulse Synth for width control approximation
+                     baseSynthType = Tone.PulseSynth;
+                     synthOptions = { frequency: 440, detune: 0, phase: 0, pulseWidth: 0.6, 
+                                      envelope: { attack: 0.02, decay: 0.1, sustain: 0.4, release: 0.8 }, 
+                                      filterEnvelope: { attack: 0.01, decay: 0.05, sustain: 0.3, release: 0.7, baseFrequency: 300, octaves: 4 } };
+                    break;
+                case 'metal_synth':
+                     baseSynthType = Tone.MetalSynth;
+                     synthOptions = { frequency: 200, harmonicity: 5.1, modulationIndex: 16, octaves: 1.5, envelope: { attack: 0.001, decay: 0.4, release: 0.2 } };
+                    break;
+                case 'piano': // Default 'piano' sound (adjusting sawtooth envelope)
+                default:
+                     synthOptions = { 
+                        oscillator: { type: 'fatsawtooth', count: 3, spread: 30 }, // Use fat sawtooth
+                        envelope: { attack: 0.01, decay: 0.15, sustain: 0.4, release: 0.8 } 
+                    }; 
+                    break;
+            }
+
+            return new Tone.PolySynth(baseSynthType, synthOptions).toDestination();
+        }
+
+        // --- Initialize or Change Audio/Synth (ONLY for explicit changes) ---
+        async function initializeOrChangeSynth() {
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+                console.log('AudioContext started!');
+            }
+            
+            const selectedInstrument = document.getElementById('instrument-select')?.value || 'piano';
+            
+            // Dispose the old synth before creating a new one
+            if (synth) {
+                synth.dispose();
+                console.log("Old synth disposed.");
+            }
+            
+            synth = createSynth(selectedInstrument);
+        }
+
+        // --- Ensure Audio is Ready and Initial Synth Exists (for key presses etc.) ---
+        async function ensureAudioReady() {
+             if (Tone.context.state !== 'running') {
+                await Tone.start();
+                console.log('AudioContext started!');
+            }
+            // Create synth only if it doesn't exist
+            if (!synth) {
+                 console.log("Synth doesn't exist, creating initial synth.");
+                 const selectedInstrument = document.getElementById('instrument-select')?.value || 'piano';
+                 synth = createSynth(selectedInstrument);
+            }
+        }
+
+        // --- Note Definitions (Tone.js understands note names like "C4") ---
+        const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+        // --- Chord Building (Simplified for Major Triads) ---
+        function getMajorTriadNotes(rootNoteName) {
+            const rootMatch = rootNoteName.match(/([A-G]#?)(\d+)/);
+            if (!rootMatch) return [rootNoteName]; // Return only root if format is wrong
+
+            const name = rootMatch[1];
+            const octave = parseInt(rootMatch[2], 10);
+            const rootIndex = NOTE_NAMES.indexOf(name);
+
+            if (rootIndex === -1) return [rootNoteName];
+
+            const thirdIndex = (rootIndex + 4) % 12;
+            const fifthIndex = (rootIndex + 7) % 12;
+
+            const thirdName = NOTE_NAMES[thirdIndex];
+            const fifthName = NOTE_NAMES[fifthIndex];
+            
+            // Adjust octave for notes that wrap around (e.g., A# -> C)
+            const thirdOctave = octave + (rootIndex + 4 >= 12 ? 1 : 0);
+            const fifthOctave = octave + (rootIndex + 7 >= 12 ? 1 : 0);
+
+            return [
+                `${name}${octave}`,
+                `${thirdName}${thirdOctave}`,
+                `${fifthName}${fifthOctave}`
+            ];
+        }
+
+        // --- Play Sequence Function --- (using Tone.js Synth)
+        // sequenceData is now expected to be an array like:
+        // [ ["C4", 1], ["PAUSE", 0.5], [ ["E4", "G4", "B4"] , 1.5] ]
+        // where the inner element is note/pause or array of notes, and the second is duration multiplier.
+        async function playSequence(sequenceArray) { 
+             await ensureAudioReady(); // NEW
+
+            if (!synth) {
+                console.error("Synth not initialized!");
+                return;
+            }
+
+            // Use a base duration, Tone.js works well with relative times like "4n", "8n"
+            // but let's stick to seconds for now based on the multiplier logic.
+            const baseDurationSecs = 0.4; 
+            // Default velocity (0-1 for Tone.js)
+            const velocity = 0.8; 
+
+            console.log(`Playing sequence array (expecting explicit chords/notes):`, sequenceArray);
+
+            let currentTime = Tone.now(); // Start playing immediately from "now"
+
+            if (!Array.isArray(sequenceArray)) {
+                console.error("Invalid sequence data: Expected an array.", sequenceArray);
+                return;
+            }
+
+            for (const item of sequenceArray) {
+                if (!Array.isArray(item) || item.length !== 2) {
+                    console.warn("Skipping invalid item format in sequence array:", item);
+                    continue;
+                }
+
+                const [eventData, multiplier] = item;
+                const currentDuration = baseDurationSecs * (typeof multiplier === 'number' && multiplier > 0 ? multiplier : 1);
+
+                let notesToPlay = [];
+                let isPause = false;
+
+                if (typeof eventData === 'string') {
+                    if (eventData.toUpperCase() === 'PAUSE') {
+                        isPause = true;
+                    } else {
+                        notesToPlay = [eventData]; // Single note
+                        // console.log(`[playSequence] Single note detected: ${eventData}`); // Optional log
+                    }
+                } else if (Array.isArray(eventData)) {
+                    // Expecting an array of notes for chords
+                    notesToPlay = eventData.filter(note => typeof note === 'string');
+                    // --- ADD LOGGING FOR CHORDS --- 
+                    console.log(`[playSequence] Chord/Polyphony detected. Notes to play: ${JSON.stringify(notesToPlay)} (Original data: ${JSON.stringify(eventData)})`);
+                    // -------------------------------
+                    if (notesToPlay.length === 0) {
+                         console.warn("Skipping chord item with no valid notes:", item);
+                         continue; // Skip if the chord array is empty or invalid
+                    }
+                } else {
+                     console.warn("Skipping unrecognized event data type:", item);
+                     continue;
+                }
+                
+                if (isPause) {
+                     console.log(`Time: ${currentTime.toFixed(2)}, PAUSE for ${currentDuration.toFixed(2)}s`);
+                     // For pauses, we just advance the time for the next event
+                     currentTime += currentDuration;
+                } else if (notesToPlay.length > 0) {
+                    // Play the notes for the calculated duration, scheduled at currentTime
+                    console.log(`Time: ${currentTime.toFixed(2)}, Playing: ${notesToPlay.join(', ')} for ${currentDuration.toFixed(2)}s`);
+                    try {
+                        synth.triggerAttackRelease(notesToPlay, currentDuration, currentTime, velocity);
+                    } catch (e) {
+                         console.error(`Error playing notes ${notesToPlay.join(', ')} with Tone.js:`, e);
+                    }
+                    // Schedule the next event after this one finishes
+                    currentTime += currentDuration; 
+                } else {
+                     // Should not happen with current checks, but advance time if it does
+                     currentTime += currentDuration; 
+                }
+            }
+             console.log("Tone.js sequence playback finished.");
+        }
+
+        // --- Example Usage / Integration Point --- 
+        document.addEventListener('DOMContentLoaded', () => {
+             const playButton = document.getElementById('ai-instruct-button'); 
+             if(playButton) {
+                 // Keep the listener, ensure it calls the correct init function
+                 playButton.addEventListener('click', async () => {
+                     // await initializeOrChangeSynth(); // OLD
+                     await ensureAudioReady(); // NEW
+                     console.log("Instruct button clicked, audio initialized (if not already). AI will handle playback.");
+                 });
+             }
+             
+             const randomButton = document.getElementById('ai-random-play-button');
+             if(randomButton) {
+                 // Keep the listener, ensure it calls init
+                 randomButton.addEventListener('click', async () => {
+                     // await initializeOrChangeSynth(); // OLD
+                     await ensureAudioReady(); // NEW
+                      console.log("Random button clicked, audio initialized (if not already). AI will handle playback.");
+                 });
+             }
+
+             // --- Add Event Listener for Instrument Change ---
+             const instrumentSelect = document.getElementById('instrument-select');
+             if (instrumentSelect) {
+                 instrumentSelect.addEventListener('change', async () => {
+                     console.log(`Instrument changed to: ${instrumentSelect.value}`);
+                     // Here we DO want to dispose and create new:
+                     await initializeOrChangeSynth(); 
+                 });
+             }
+             
+             console.log("Tone.js script loaded. Click a button or key to initialize audio.");
+        });
+
     </script>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white p-6 md:p-8 rounded-lg shadow-xl max-w-2xl w-full mx-auto">
+            <button id="close-help-modal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <h3 class="text-2xl font-bold text-blue-900 mb-4">How Keynius Works</h3>
+            <div class="text-gray-700 space-y-3 text-base">
+                <p>
+                    Describe the music you want to hear in the input box. You can mention style, mood, key, tempo, or even specific instruments (though Keynius currently only plays piano sounds).
+                </p>
+                <p>
+                    <strong>Specific Songs:</strong> If you ask for a specific, well-known song by putting the title in quotes (e.g., <code class="bg-gray-100 px-1 rounded text-sm">"Für Elise"</code> or <code class="bg-gray-100 px-1 rounded text-sm">Play 'Ode to Joy' by Beethoven</code>), Keynius will first try to generate the entire piece at once. This often works well for simpler, famous melodies.
+                </p>
+                <p>
+                    <strong>Improvisation / Segments:</strong> If you don't use quotes, or if the requested song is too complex or not recognized, Keynius will generate the music step-by-step in several segments. It tries to follow your prompt initially and then continues "in style" based on the music generated so far. This is better for general descriptions like <code class="bg-gray-100 px-1 rounded text-sm">a fast jazz solo</code> or <code class="bg-gray-100 px-1 rounded text-sm">slow sad chords in C minor</code>.
+                </p>
+                <p>
+                    <strong>Controls:</strong> Use the dropdowns below the input to guide the AI towards a specific Style, Key, or Mode (Major/Minor) if you like.
+                </p>
+                <p>
+                    You can also play the piano yourself using your mouse, touch screen, or keyboard keys (ZXC... and QWE...). Enjoy!
+                </p>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

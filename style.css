@@ -4,51 +4,63 @@
 /* If piano styles are only in index.html <style> tag, this won't hurt */
 .piano-container {
     perspective: 1000px;
+    border-radius: 10px; /* Added rounded corners */
+    background: #f0f2f5; /* Light grey background for the container */
+    padding: 20px; /* Add some padding */
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* Softer, larger shadow */
 }
 
 .white-key {
     position: relative;
     width: 40px;
     height: 200px;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 0 0 5px 5px;
-    box-shadow: 0 5px 5px rgba(0,0,0,0.2);
-    transition: all 0.1s;
+    /* background: white; // Replaced by gradient */
+    background: linear-gradient(to bottom, #ffffff 80%, #f0f0f0 100%); /* Subtle gradient */
+    border: 1px solid #bbb; /* Slightly darker border */
+    border-radius: 0 0 7px 7px; /* Increased rounding */
+    /* box-shadow: 0 5px 5px rgba(0,0,0,0.2); // Replaced */
+    box-shadow: inset 0 -2px 3px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.1); /* Inner bottom + outer */
+    transition: all 0.08s ease-out; /* Slightly faster transition */
     z-index: 1;
-    float: left;
     margin-right: 1px;
 }
 
 .white-key.active {
-    background: #f0f0f0;
+    /* background: #f0f0f0; // Replaced */
+    background: linear-gradient(to bottom, #e8e8e8 80%, #d8d8d8 100%); /* Darker active gradient */
     transform: translateY(2px);
-    box-shadow: 0 3px 3px rgba(0,0,0,0.2);
+    /* box-shadow: 0 3px 3px rgba(0,0,0,0.2); // Replaced */
+    box-shadow: inset 0 -1px 2px rgba(0,0,0,0.1), 0 2px 3px rgba(0,0,0,0.15); /* Adjusted active shadow */
+    border-color: #aaa;
 }
 
 .piano-container .flex {
-    display: block;
+    display: flex; /* Use Flexbox to arrange keys */
     position: relative;
-    width: calc(28 * (40px + 1px));
     height: 200px;
     overflow: visible;
+    width: max-content; /* Ensure container wraps content */
 }
 
 .black-key {
     position: absolute;
     width: 24px;
     height: 120px;
-    background: #222;
-    border-radius: 0 0 3px 3px;
-    box-shadow: 0 5px 5px rgba(0,0,0,0.4);
+    /* background: #222; // Replaced */
+    background: linear-gradient(to bottom, #333 0%, #1a1a1a 100%); /* Dark gradient */
+    border-radius: 0 0 4px 4px; /* Increased rounding */
+    /* box-shadow: 0 5px 5px rgba(0,0,0,0.4); // Replaced */
+    box-shadow: inset 0 -3px 4px rgba(0,0,0,0.4), 0 3px 5px rgba(0,0,0,0.3); /* Inner + outer shadow */
     z-index: 2;
-    transition: all 0.1s;
+    transition: all 0.08s ease-out;
 }
 
 .black-key.active {
-    background: #111;
+    /* background: #111; // Replaced */
+     background: linear-gradient(to bottom, #222 0%, #0d0d0d 100%); /* Darker active gradient */
     transform: translateY(2px);
-    box-shadow: 0 3px 3px rgba(0,0,0,0.4);
+    /* box-shadow: 0 3px 3px rgba(0,0,0,0.4); // Replaced */
+    box-shadow: inset 0 -1px 2px rgba(0,0,0,0.5), 0 2px 3px rgba(0,0,0,0.35); /* Adjusted active shadow */
 }
 
 /* Positioning black keys relative to the start of their white key parent */
@@ -84,28 +96,34 @@
 [data-note="G#6"] { left: calc(25 * (40px + 1px) + 40px - (24px / 2)); } /* After G6 */
 [data-note="A#6"] { left: calc(26 * (40px + 1px) + 40px - (24px / 2)); } /* After A6 */
 
+/* --- Hide key labels by default --- */
 .key-label {
+    display: none;
     position: absolute;
     bottom: 10px;
     width: 100%;
     text-align: center;
-    font-size: 12px;
-    color: #666;
+    font-size: 10px; /* Made smaller */
+    color: #888;    /* Lighter color */
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    display: none;
 }
 
 .black-key .key-label {
     color: #aaa;
 }
 
-/* --- Hide key labels --- */
-.key-label {
-    display: none;
+/* Optional: Show label on hover/active? Example: */
+/*
+.white-key:hover .key-label,
+.white-key.active .key-label,
+.black-key:hover .key-label,
+.black-key.active .key-label {
+    display: block;
 }
+*/
 
 /* --- Progress Bar & Loading Styles --- */
 .progress-button {
